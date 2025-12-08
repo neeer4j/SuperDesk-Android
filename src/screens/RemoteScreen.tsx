@@ -107,10 +107,8 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
 
     const initializeConnection = async () => {
         try {
-            // IMPORTANT: Initialize WebRTC FIRST (sets up ontrack handler before joining)
-            await webRTCService.initialize('viewer', sessionId);
-
-            // Set up remote stream callback
+            // IMPORTANT: Set up callbacks BEFORE initialization
+            // This ensures they're in place when ontrack fires during signaling
             webRTCService.onRemoteStream((stream) => {
                 console.log('📱 Got remote stream!');
                 setRemoteStream(stream);
@@ -140,6 +138,9 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                 console.log('📱 Data channel ready for input!');
                 setIsRemoteControlEnabled(true);
             });
+
+            // NOW initialize WebRTC (this will trigger signaling and potentially ontrack)
+            await webRTCService.initialize('viewer', sessionId);
 
         } catch (error) {
             console.error('❌ Connection error:', error);
@@ -290,8 +291,8 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                 </View>
             )}
 
-            {/* Overlay Controls */}
-            {showControls && (
+            {/* Full Controls (only when NOT in remote control mode) */}
+            {!isRemoteControlEnabled && showControls && (
                 <View style={styles.controlsOverlay} pointerEvents="box-none">
                     {/* Top Bar */}
                     <View style={styles.topBar}>
@@ -334,32 +335,34 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[
-                                styles.controlButton,
-                                isRemoteControlEnabled && styles.controlButtonActive,
-                            ]}
-                            onPress={() => {
-                                if (isRemoteControlEnabled) {
-                                    socketService.disableRemoteControl(sessionId);
-                                } else {
-                                    socketService.enableRemoteControl(sessionId);
-                                }
-                            }}
+                            style={styles.controlButton}
+                            onPress={() => setIsRemoteControlEnabled(true)}
                         >
-                            <Text style={styles.controlButtonText}>
-                                {isRemoteControlEnabled ? '🖱️' : '🚫'}
-                            </Text>
+                            <Text style={styles.controlButtonText}>🖱️ Control</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             )}
 
-            {/* Tap anywhere to toggle controls (invisible overlay) */}
-            <TouchableOpacity
-                style={styles.controlsToggle}
-                onPress={toggleControls}
-                activeOpacity={1}
-            />
+            {/* Floating Control Toggle (only when in remote control mode) */}
+            {isRemoteControlEnabled && remoteStream && (
+                <TouchableOpacity
+                    style={styles.floatingControlButton}
+                    onPress={() => setIsRemoteControlEnabled(false)}
+                >
+                    <Text style={styles.floatingControlText}>🖱️</Text>
+                    <Text style={styles.floatingControlLabel}>Exit</Text>
+                </TouchableOpacity>
+            )}
+
+            {/* Tap anywhere to toggle controls (only when NOT controlling) */}
+            {!isRemoteControlEnabled && (
+                <TouchableOpacity
+                    style={styles.controlsToggle}
+                    onPress={toggleControls}
+                    activeOpacity={1}
+                />
+            )}
         </GestureHandlerRootView>
     );
 };
@@ -470,6 +473,31 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 100,
+    },
+    floatingControlButton: {
+        position: 'absolute',
+        right: 10,
+        top: '45%',
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(34, 197, 94, 0.9)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    floatingControlText: {
+        fontSize: 20,
+    },
+    floatingControlLabel: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '600',
+        marginTop: -2,
     },
 });
 

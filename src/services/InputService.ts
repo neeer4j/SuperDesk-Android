@@ -47,11 +47,16 @@ class InputService {
 
     // Send input event - uses data channel if available, Socket.IO as fallback
     private sendInput(event: InputEvent) {
+        const dataChannelOpen = webRTCService.isDataChannelOpen();
+        console.log(`📱 Sending input: ${event.type}:${event.action}, dataChannel=${dataChannelOpen}, sessionId=${this.sessionId}`);
+
         // Try data channel first (lowest latency - P2P)
-        if (this.preferDataChannel && webRTCService.isDataChannelOpen()) {
+        if (this.preferDataChannel && dataChannelOpen) {
+            console.log('📱 Using data channel for input');
             webRTCService.sendInputEvent(event);
         } else if (this.sessionId) {
             // Fallback to Socket.IO
+            console.log('📱 Using Socket.IO fallback for input');
             if (event.type === 'mouse') {
                 socketService.sendMouseEvent(
                     this.sessionId,
@@ -72,6 +77,8 @@ class InputService {
                     event.data.code || event.data.key
                 );
             }
+        } else {
+            console.warn('📱 Cannot send input: no data channel and no sessionId');
         }
     }
 
