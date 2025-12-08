@@ -15,6 +15,7 @@ import MessagesScreen from '../screens/MessagesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import RemoteScreen from '../screens/RemoteScreen';
 import SessionScreen from '../screens/SessionScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 // Icons
 import {
@@ -40,6 +41,10 @@ export type RootStackParamList = {
         role: 'host';
     };
     Settings: undefined;
+    Chat: {
+        userId: string;
+        username: string;
+    };
 };
 
 export type TabParamList = {
@@ -193,6 +198,7 @@ const Navigation: React.FC = () => {
                         <Stack.Screen name="Settings">
                             {(props) => <SettingsScreen {...props} onLogout={handleLogout} />}
                         </Stack.Screen>
+                        <Stack.Screen name="Chat" component={ChatScreen} />
                     </>
                 )}
             </Stack.Navigator>
