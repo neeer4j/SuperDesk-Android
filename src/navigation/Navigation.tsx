@@ -1,14 +1,37 @@
-// Navigation setup for SuperDesk Mobile
-import React from 'react';
+// Navigation setup for SuperDesk Mobile with Bottom Tabs and Auth
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 
-import HomeScreen from '../screens/HomeScreen';
+// Screens
+import LoginScreen from '../screens/LoginScreen';
+import HostSessionScreen from '../screens/HostSessionScreen';
+import JoinSessionScreen from '../screens/JoinSessionScreen';
+import FileTransferScreen from '../screens/FileTransferScreen';
+import FriendsScreen from '../screens/FriendsScreen';
+import MessagesScreen from '../screens/MessagesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import RemoteScreen from '../screens/RemoteScreen';
 import SessionScreen from '../screens/SessionScreen';
 
+// Icons
+import {
+    HostIcon,
+    JoinIcon,
+    FileTransferIcon,
+    FriendsIcon,
+    MessagesIcon,
+} from '../components/Icons';
+
+// Auth
+import { authService } from '../services/supabaseClient';
+
+// Type definitions
 export type RootStackParamList = {
-    Home: undefined;
+    Login: undefined;
+    MainTabs: undefined;
     Remote: {
         sessionId: string;
         role: 'viewer' | 'host';
@@ -16,34 +39,186 @@ export type RootStackParamList = {
     Session: {
         role: 'host';
     };
+    Settings: undefined;
+};
+
+export type TabParamList = {
+    Host: undefined;
+    Join: undefined;
+    FileTransfer: undefined;
+    Friends: undefined;
+    Messages: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 
+// Bottom Tab Navigator
+const TabNavigator: React.FC = () => {
+    return (
+        <Tab.Navigator
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: styles.tabBar,
+                tabBarActiveTintColor: '#8b5cf6',
+                tabBarInactiveTintColor: '#666',
+                tabBarShowLabel: true,
+                tabBarLabelStyle: styles.tabLabel,
+            }}
+        >
+            <Tab.Screen
+                name="Host"
+                component={HostSessionScreen}
+                options={{
+                    tabBarLabel: 'Host',
+                    tabBarIcon: ({ color, size }) => (
+                        <HostIcon size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Join"
+                component={JoinSessionScreen}
+                options={{
+                    tabBarLabel: 'Join',
+                    tabBarIcon: ({ color, size }) => (
+                        <JoinIcon size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="FileTransfer"
+                component={FileTransferScreen}
+                options={{
+                    tabBarLabel: 'Files',
+                    tabBarIcon: ({ color, size }) => (
+                        <FileTransferIcon size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Friends"
+                component={FriendsScreen}
+                options={{
+                    tabBarLabel: 'Friends',
+                    tabBarIcon: ({ color, size }) => (
+                        <FriendsIcon size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Messages"
+                component={MessagesScreen}
+                options={{
+                    tabBarLabel: 'Chat',
+                    tabBarIcon: ({ color, size }) => (
+                        <MessagesIcon size={size} color={color} />
+                    ),
+                }}
+            />
+        </Tab.Navigator>
+    );
+};
+
+// Main Navigation with Auth State
 const Navigation: React.FC = () => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        checkAuth();
+
+        // Listen for auth state changes
+        const { data: { subscription } } = authService.onAuthStateChange((event, session) => {
+            setIsAuthenticated(!!session);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    const checkAuth = async () => {
+        try {
+            const session = await authService.getSession();
+            setIsAuthenticated(!!session);
+        } catch (error) {
+            setIsAuthenticated(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleLogin = () => {
+        setIsAuthenticated(true);
+    };
+
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#8b5cf6" />
+            </View>
+        );
+    }
+
     return (
         <NavigationContainer>
             <Stack.Navigator
-                initialRouteName="Home"
                 screenOptions={{
                     headerShown: false,
                     animation: 'slide_from_right',
                     contentStyle: { backgroundColor: '#0a0a0f' },
                 }}
             >
-                <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen
-                    name="Remote"
-                    component={RemoteScreen}
-                    options={{
-                        animation: 'fade',
-                        gestureEnabled: false,
-                    }}
-                />
-                <Stack.Screen name="Session" component={SessionScreen} />
+                {!isAuthenticated ? (
+                    <Stack.Screen name="Login">
+                        {(props) => <LoginScreen {...props} onLogin={handleLogin} />}
+                    </Stack.Screen>
+                ) : (
+                    <>
+                        <Stack.Screen name="MainTabs" component={TabNavigator} />
+                        <Stack.Screen
+                            name="Remote"
+                            component={RemoteScreen}
+                            options={{
+                                animation: 'fade',
+                                gestureEnabled: false,
+                            }}
+                        />
+                        <Stack.Screen name="Session" component={SessionScreen} />
+                        <Stack.Screen
+                            name="Settings"
+                            component={SettingsScreen}
+                            options={{
+                                animation: 'slide_from_right',
+                            }}
+                        />
+                    </>
+                )}
             </Stack.Navigator>
         </NavigationContainer>
     );
 };
+
+const styles = StyleSheet.create({
+    tabBar: {
+        backgroundColor: '#16161e',
+        borderTopColor: '#2a2a3a',
+        borderTopWidth: 1,
+        height: 70,
+        paddingBottom: 10,
+        paddingTop: 10,
+    },
+    tabLabel: {
+        fontSize: 11,
+        fontWeight: '500',
+    },
+    loadingContainer: {
+        flex: 1,
+        backgroundColor: '#0a0a0f',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});
 
 export default Navigation;
