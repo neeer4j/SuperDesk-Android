@@ -1,4 +1,4 @@
-// Navigation setup for SuperDesk Mobile with Bottom Tabs and Auth
+// Navigation setup for SuperDesk Mobile with Bottom Tabs and OTP Auth
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -153,6 +153,10 @@ const Navigation: React.FC = () => {
         setIsAuthenticated(true);
     };
 
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+    };
+
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -186,13 +190,9 @@ const Navigation: React.FC = () => {
                             }}
                         />
                         <Stack.Screen name="Session" component={SessionScreen} />
-                        <Stack.Screen
-                            name="Settings"
-                            component={SettingsScreen}
-                            options={{
-                                animation: 'slide_from_right',
-                            }}
-                        />
+                        <Stack.Screen name="Settings">
+                            {(props) => <SettingsScreen {...props} onLogout={handleLogout} />}
+                        </Stack.Screen>
                     </>
                 )}
             </Stack.Navigator>
