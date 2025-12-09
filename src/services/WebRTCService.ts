@@ -354,7 +354,12 @@ class WebRTCService {
         const tracks = stream.getTracks();
         console.log('📱 Adding stream with', tracks.length, 'tracks');
         tracks.forEach((track) => {
-            console.log('📱 Adding track:', track.kind, 'enabled:', track.enabled, 'readyState:', track.readyState);
+            // Ensure track is enabled (not muted)
+            if (!track.enabled) {
+                console.log('📱 Enabling track:', track.kind);
+                track.enabled = true;
+            }
+            console.log('📱 Adding track:', track.kind, 'enabled:', track.enabled, 'readyState:', track.readyState, 'muted:', (track as any).muted);
             this.peerConnection?.addTrack(track, stream);
         });
         console.log('📱 All tracks added to peer connection');
@@ -377,7 +382,9 @@ class WebRTCService {
                 const tracks = stream.getTracks();
                 console.log('📱 getDisplayMedia success! Got', tracks.length, 'tracks');
                 tracks.forEach((track: any) => {
-                    console.log('📱 Track:', track.kind, 'enabled:', track.enabled, 'readyState:', track.readyState);
+                    // CRITICAL: Ensure track is enabled immediately
+                    track.enabled = true;
+                    console.log('📱 Track:', track.kind, 'enabled:', track.enabled, 'readyState:', track.readyState, 'muted:', track.muted);
                     const settings = track.getSettings?.() || {};
                     console.log('📱 Track settings:', JSON.stringify(settings));
                 });
