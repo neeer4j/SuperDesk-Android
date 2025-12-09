@@ -41,14 +41,61 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
     const [isRemoteControlEnabled, setIsRemoteControlEnabled] = useState(false);
     const [streamDimensions, setStreamDimensions] = useState({ width: 1920, height: 1080 });
 
+    // Video display area tracking for accurate coordinate mapping
+    const [containerDimensions, setContainerDimensions] = useState({ width: SCREEN_WIDTH, height: SCREEN_HEIGHT });
+    const [videoDisplayArea, setVideoDisplayArea] = useState({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        offsetX: 0,
+        offsetY: 0,
+    });
+
     const cleanupRef = useRef(false);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Calculate video display area when container or stream dimensions change
+    useEffect(() => {
+        const containerRatio = containerDimensions.width / containerDimensions.height;
+        const videoRatio = streamDimensions.width / streamDimensions.height;
+
+        let displayWidth, displayHeight, offsetX, offsetY;
+
+        if (containerRatio > videoRatio) {
+            // Container is wider - letterbox on left/right
+            displayHeight = containerDimensions.height;
+            displayWidth = displayHeight * videoRatio;
+            offsetX = (containerDimensions.width - displayWidth) / 2;
+            offsetY = 0;
+        } else {
+            // Container is taller - letterbox on top/bottom
+            displayWidth = containerDimensions.width;
+            displayHeight = displayWidth / videoRatio;
+            offsetX = 0;
+            offsetY = (containerDimensions.height - displayHeight) / 2;
+        }
+
+        setVideoDisplayArea({
+            width: displayWidth,
+            height: displayHeight,
+            offsetX,
+            offsetY,
+        });
+
+        // Update input service with actual video dimensions
+        inputService.setViewSize(displayWidth, displayHeight);
+
+        console.log('📱 Video display area calculated:', {
+            container: containerDimensions,
+            video: streamDimensions,
+            display: { width: displayWidth, height: displayHeight },
+            offset: { x: offsetX, y: offsetY },
+        });
+    }, [containerDimensions, streamDimensions]);
 
     useEffect(() => {
         initializeConnection();
 
-        // Set up view size for input translation
-        inputService.setViewSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        // Initial setup with screen dimensions
         inputService.setSessionId(sessionId);
 
         // Auto-hide controls after 5 seconds
@@ -92,9 +139,57 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             if (controlsTimeoutRef.current) {
                 clearTimeout(controlsTimeoutRef.current);
             }
+            if (resolutionIntervalRef.current) {
+                clearInterval(resolutionIntervalRef.current);
+            }
             webRTCService.close();
         };
     }, []);
+
+    const resolutionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Function to check and update stream resolution
+    const checkStreamResolution = (stream: MediaStream) => {
+        if (!stream) return;
+        const videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack) return;
+
+        // Try to get resolution from settings
+        const settings = videoTrack.getSettings ? videoTrack.getSettings() : null;
+        // @ts-ignore - react-native-webrtc types might be missing width/height in settings
+        const width = settings?.width || (videoTrack as any).width || 0;
+        // @ts-ignore
+        const height = settings?.height || (videoTrack as any).height || 0;
+
+        if (width > 0 && height > 0) {
+            console.log('📱 Detected stream resolution:', width, 'x', height);
+            setStreamDimensions(prev => {
+                if (prev.width !== width || prev.height !== height) {
+                    return { width, height };
+                }
+                return prev;
+            });
+        }
+    };
+
+    // Monitor stream resolution changes
+    useEffect(() => {
+        if (remoteStream) {
+            // Check immediately
+            checkStreamResolution(remoteStream);
+
+            // And check periodically in case it changes or wasn't ready
+            resolutionIntervalRef.current = setInterval(() => {
+                checkStreamResolution(remoteStream);
+            }, 2000);
+        }
+
+        return () => {
+            if (resolutionIntervalRef.current) {
+                clearInterval(resolutionIntervalRef.current);
+            }
+        };
+    }, [remoteStream]);
 
     const startControlsTimeout = () => {
         if (controlsTimeoutRef.current) {
@@ -162,43 +257,72 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         }
     };
 
+    // Helper to convert screen coordinates to video-relative coordinates
+    const getVideoRelativeCoords = (x: number, y: number) => {
+        const videoRelativeX = x - videoDisplayArea.offsetX;
+        const videoRelativeY = y - videoDisplayArea.offsetY;
+
+        // Check if touch is within video bounds (ignore letterbox areas)
+        if (
+            videoRelativeX >= 0 &&
+            videoRelativeX <= videoDisplayArea.width &&
+            videoRelativeY >= 0 &&
+            videoRelativeY <= videoDisplayArea.height
+        ) {
+            return { x: videoRelativeX, y: videoRelativeY, isValid: true };
+        }
+
+        return { x: 0, y: 0, isValid: false };
+    };
+
     // Gesture handlers for remote control - ALWAYS send input when we have a stream
     const tapGesture = Gesture.Tap()
         .onEnd((event) => {
-            console.log('📱 Tap detected at:', event.x, event.y, 'remoteControlEnabled:', isRemoteControlEnabled, 'hasStream:', !!remoteStream);
-            // Send input if we have a stream (don't rely solely on isRemoteControlEnabled state)
-            if (remoteStream) {
-                inputService.onTap(event.x, event.y);
+            if (!remoteStream) return;
+
+            const coords = getVideoRelativeCoords(event.x, event.y);
+            if (coords.isValid) {
+                inputService.onTap(coords.x, coords.y);
             }
         });
 
     const doubleTapGesture = Gesture.Tap()
         .numberOfTaps(2)
         .onEnd((event) => {
-            console.log('📱 Double tap detected at:', event.x, event.y);
-            if (remoteStream) {
-                inputService.onDoubleTap(event.x, event.y);
+            if (!remoteStream) return;
+
+            const coords = getVideoRelativeCoords(event.x, event.y);
+            if (coords.isValid) {
+                inputService.onDoubleTap(coords.x, coords.y);
             }
         });
 
     const longPressGesture = Gesture.LongPress()
         .minDuration(500)
         .onEnd((event) => {
-            console.log('📱 Long press detected at:', event.x, event.y);
-            if (remoteStream) {
-                inputService.onLongPress(event.x, event.y);
+            if (!remoteStream) return;
+
+            const coords = getVideoRelativeCoords(event.x, event.y);
+            if (coords.isValid) {
+                inputService.onLongPress(coords.x, coords.y);
             }
         });
 
     const panGesture = Gesture.Pan()
         .onStart((event) => {
-            if (remoteStream) {
-                inputService.onTouchStart(event.x, event.y);
+            if (!remoteStream) return;
+
+            const coords = getVideoRelativeCoords(event.x, event.y);
+            if (coords.isValid) {
+                inputService.onTouchStart(coords.x, coords.y);
             }
         })
         .onUpdate((event) => {
-            if (remoteStream) {
-                inputService.onTouchMove(event.x, event.y);
+            if (!remoteStream) return;
+
+            const coords = getVideoRelativeCoords(event.x, event.y);
+            if (coords.isValid) {
+                inputService.onTouchMove(coords.x, coords.y);
             }
         })
         .onEnd(() => {
@@ -209,8 +333,11 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
 
     const pinchGesture = Gesture.Pinch()
         .onUpdate((event) => {
-            if (remoteStream) {
-                inputService.onPinch(event.scale, event.focalX, event.focalY);
+            if (!remoteStream) return;
+
+            const coords = getVideoRelativeCoords(event.focalX, event.focalY);
+            if (coords.isValid) {
+                inputService.onPinch(event.scale, coords.x, coords.y);
             }
         });
 
@@ -291,7 +418,13 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             {/* Remote Stream View */}
             {remoteStream ? (
                 <GestureDetector gesture={composedGesture}>
-                    <View style={styles.streamContainer}>
+                    <View
+                        style={styles.streamContainer}
+                        onLayout={(event) => {
+                            const { width, height } = event.nativeEvent.layout;
+                            setContainerDimensions({ width, height });
+                        }}
+                    >
                         <RTCView
                             streamURL={remoteStream.toURL()}
                             style={styles.stream}
