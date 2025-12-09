@@ -323,14 +323,21 @@ class WebRTCService {
         }
 
         try {
+            console.log('📱 Creating offer...');
+            console.log('📱 Peer connection senders:', (this.peerConnection as any).getSenders?.()?.length || 'unknown');
+
             const offer = await this.peerConnection.createOffer({
-                offerToReceiveVideo: true,
+                offerToReceiveVideo: false, // We're sending, not receiving
                 offerToReceiveAudio: false,
             } as any);
 
+            console.log('📱 Offer created, SDP length:', offer.sdp?.length || 0);
+
             await this.peerConnection.setLocalDescription(offer);
+            console.log('📱 Local description set');
+
             socketService.sendOffer(this.sessionId, offer);
-            console.log('📱 Offer sent');
+            console.log('📱 Offer sent to session:', this.sessionId);
         } catch (error) {
             console.error('❌ Error creating offer:', error);
         }
@@ -338,22 +345,44 @@ class WebRTCService {
 
     // Add local stream (for screen sharing as host)
     addStream(stream: MediaStream) {
-        if (!this.peerConnection) return;
+        if (!this.peerConnection) {
+            console.error('❌ Cannot add stream: no peer connection');
+            return;
+        }
 
         this.localStream = stream;
-        stream.getTracks().forEach((track) => {
-            console.log('📱 Adding track:', track.kind);
+        const tracks = stream.getTracks();
+        console.log('📱 Adding stream with', tracks.length, 'tracks');
+        tracks.forEach((track) => {
+            console.log('📱 Adding track:', track.kind, 'enabled:', track.enabled, 'readyState:', track.readyState);
             this.peerConnection?.addTrack(track, stream);
         });
+        console.log('📱 All tracks added to peer connection');
     }
 
     // Get screen capture stream (mobile hosting)
     async getDisplayMedia(): Promise<MediaStream | null> {
         try {
+            console.log('📱 Calling mediaDevices.getDisplayMedia...');
             const stream = await (mediaDevices as any).getDisplayMedia({
-                video: true,
+                video: {
+                    frameRate: 30,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                },
                 audio: false,
             });
+
+            if (stream) {
+                const tracks = stream.getTracks();
+                console.log('📱 getDisplayMedia success! Got', tracks.length, 'tracks');
+                tracks.forEach((track: any) => {
+                    console.log('📱 Track:', track.kind, 'enabled:', track.enabled, 'readyState:', track.readyState);
+                    const settings = track.getSettings?.() || {};
+                    console.log('📱 Track settings:', JSON.stringify(settings));
+                });
+            }
+
             return stream as MediaStream;
         } catch (error) {
             console.error('❌ Error getting display media:', error);

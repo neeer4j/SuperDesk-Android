@@ -112,6 +112,9 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             webRTCService.onRemoteStream((stream) => {
                 console.log('📱 Got remote stream!');
                 setRemoteStream(stream);
+                // Auto-enable remote control when we have a stream
+                setIsRemoteControlEnabled(true);
+                console.log('📱 Remote control auto-enabled with stream');
             });
 
             webRTCService.onConnectionStateChange((state) => {
@@ -136,6 +139,11 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             // Enable data channel for low-latency input
             webRTCService.onDataChannelOpen(() => {
                 console.log('📱 Data channel ready for input!');
+                console.log('📱 View dimensions:', SCREEN_WIDTH, 'x', SCREEN_HEIGHT);
+                console.log('📱 Session ID:', sessionId);
+                // Ensure input service is configured when data channel opens
+                inputService.setViewSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+                inputService.setSessionId(sessionId);
                 setIsRemoteControlEnabled(true);
             });
 
@@ -150,10 +158,12 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         }
     };
 
-    // Gesture handlers for remote control
+    // Gesture handlers for remote control - ALWAYS send input when we have a stream
     const tapGesture = Gesture.Tap()
         .onEnd((event) => {
-            if (isRemoteControlEnabled) {
+            console.log('📱 Tap detected at:', event.x, event.y, 'remoteControlEnabled:', isRemoteControlEnabled, 'hasStream:', !!remoteStream);
+            // Send input if we have a stream (don't rely solely on isRemoteControlEnabled state)
+            if (remoteStream) {
                 inputService.onTap(event.x, event.y);
             }
         });
@@ -161,7 +171,8 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
     const doubleTapGesture = Gesture.Tap()
         .numberOfTaps(2)
         .onEnd((event) => {
-            if (isRemoteControlEnabled) {
+            console.log('📱 Double tap detected at:', event.x, event.y);
+            if (remoteStream) {
                 inputService.onDoubleTap(event.x, event.y);
             }
         });
@@ -169,31 +180,32 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
     const longPressGesture = Gesture.LongPress()
         .minDuration(500)
         .onEnd((event) => {
-            if (isRemoteControlEnabled) {
+            console.log('📱 Long press detected at:', event.x, event.y);
+            if (remoteStream) {
                 inputService.onLongPress(event.x, event.y);
             }
         });
 
     const panGesture = Gesture.Pan()
         .onStart((event) => {
-            if (isRemoteControlEnabled) {
+            if (remoteStream) {
                 inputService.onTouchStart(event.x, event.y);
             }
         })
         .onUpdate((event) => {
-            if (isRemoteControlEnabled) {
+            if (remoteStream) {
                 inputService.onTouchMove(event.x, event.y);
             }
         })
         .onEnd(() => {
-            if (isRemoteControlEnabled) {
+            if (remoteStream) {
                 inputService.onTouchEnd();
             }
         });
 
     const pinchGesture = Gesture.Pinch()
         .onUpdate((event) => {
-            if (isRemoteControlEnabled) {
+            if (remoteStream) {
                 inputService.onPinch(event.scale, event.focalX, event.focalY);
             }
         });
@@ -291,8 +303,8 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                 </View>
             )}
 
-            {/* Full Controls (only when NOT in remote control mode) */}
-            {!isRemoteControlEnabled && showControls && (
+            {/* Controls Overlay - shows when showControls is true */}
+            {showControls && remoteStream && (
                 <View style={styles.controlsOverlay} pointerEvents="box-none">
                     {/* Top Bar */}
                     <View style={styles.topBar}>
@@ -344,25 +356,21 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                 </View>
             )}
 
-            {/* Floating Control Toggle (only when in remote control mode) */}
-            {isRemoteControlEnabled && remoteStream && (
+            {/* Floating Toggle Button - always visible when stream exists */}
+            {remoteStream && (
                 <TouchableOpacity
-                    style={styles.floatingControlButton}
-                    onPress={() => setIsRemoteControlEnabled(false)}
+                    style={[
+                        styles.floatingControlButton,
+                        showControls ? styles.floatingControlButtonActive : null,
+                    ]}
+                    onPress={() => setShowControls(!showControls)}
                 >
-                    <Text style={styles.floatingControlText}>🖱️</Text>
-                    <Text style={styles.floatingControlLabel}>Exit</Text>
+                    <Text style={styles.floatingControlText}>{showControls ? '✕' : '☰'}</Text>
+                    <Text style={styles.floatingControlLabel}>{showControls ? 'Hide' : 'Menu'}</Text>
                 </TouchableOpacity>
             )}
 
-            {/* Tap anywhere to toggle controls (only when NOT controlling) */}
-            {!isRemoteControlEnabled && (
-                <TouchableOpacity
-                    style={styles.controlsToggle}
-                    onPress={toggleControls}
-                    activeOpacity={1}
-                />
-            )}
+            {/* Removed blocking controlsToggle overlay - gestures now work directly on RTCView */}
         </GestureHandlerRootView>
     );
 };
@@ -481,7 +489,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: 'rgba(34, 197, 94, 0.9)',
+        backgroundColor: 'rgba(139, 92, 246, 0.9)',
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 5,
@@ -489,6 +497,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
+    },
+    floatingControlButtonActive: {
+        backgroundColor: 'rgba(239, 68, 68, 0.9)',
     },
     floatingControlText: {
         fontSize: 20,

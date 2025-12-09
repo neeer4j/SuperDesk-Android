@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { socketService } from '../services/SocketService';
 import { webRTCService } from '../services/WebRTCService';
-import { screenCaptureService } from '../services/ScreenCaptureService';
 import { remoteControlService } from '../services/RemoteControlService';
 
 interface SessionScreenProps {
@@ -131,22 +130,18 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
 
         try {
             setStatus('connecting');
+            console.log('📱 Requesting screen capture via WebRTC...');
 
-            // Request screen capture permission
-            const hasPermission = await screenCaptureService.requestPermission();
-            if (!hasPermission) {
-                setError('Screen capture permission denied');
-                setStatus('error');
-                return;
-            }
-
-            // Get the display media stream via WebRTC
+            // Get the display media stream via WebRTC (this will prompt for permission)
+            // Using ONLY webRTCService.getDisplayMedia() - NOT screenCaptureService
+            // to avoid conflicting MediaProjection instances that cause crashes
             const stream = await webRTCService.getDisplayMedia();
             if (!stream) {
-                setError('Failed to get screen stream');
+                setError('Screen capture permission denied or failed');
                 setStatus('error');
                 return;
             }
+            console.log('📱 Got screen stream:', stream.id);
 
             // Add stream to peer connection
             webRTCService.addStream(stream);
@@ -169,11 +164,7 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
     };
 
     const cleanup = async () => {
-        try {
-            await screenCaptureService.stopCapture();
-        } catch (e) {
-            // Ignore
-        }
+        // WebRTC service handles stream cleanup internally
         webRTCService.close();
     };
 
