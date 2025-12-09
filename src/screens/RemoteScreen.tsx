@@ -112,9 +112,9 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             webRTCService.onRemoteStream((stream) => {
                 console.log('📱 Got remote stream!');
                 setRemoteStream(stream);
-                // Auto-enable remote control when we have a stream
-                setIsRemoteControlEnabled(true);
-                console.log('📱 Remote control auto-enabled with stream');
+                // NOTE: Don't auto-enable remote control here
+                // Wait for server to signal when host enables it
+                console.log('📱 Stream received, waiting for host to enable control');
             });
 
             webRTCService.onConnectionStateChange((state) => {
@@ -141,10 +141,14 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                 console.log('📱 Data channel ready for input!');
                 console.log('📱 View dimensions:', SCREEN_WIDTH, 'x', SCREEN_HEIGHT);
                 console.log('📱 Session ID:', sessionId);
-                // Ensure input service is configured when data channel opens
+                // Configure input service when data channel opens
                 inputService.setViewSize(SCREEN_WIDTH, SCREEN_HEIGHT);
                 inputService.setSessionId(sessionId);
-                setIsRemoteControlEnabled(true);
+
+                // AUTO-REQUEST remote control when data channel is ready
+                // This tells the host we want to control their desktop
+                console.log('📱 Auto-requesting remote control from host...');
+                socketService.enableRemoteControl(sessionId);
             });
 
             // NOW initialize WebRTC (this will trigger signaling and potentially ontrack)

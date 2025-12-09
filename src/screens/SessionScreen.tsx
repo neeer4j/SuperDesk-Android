@@ -51,6 +51,62 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
             }
         });
 
+        // Set up Socket.IO event handlers for remote control input
+        // This handles events sent by the desktop via Socket.IO relay
+        socketService.onMouseEvent(async (data) => {
+            console.log('📱 *** SOCKET.IO MOUSE EVENT RECEIVED ***');
+            console.log('📱 Event type:', data.type, 'x:', data.x?.toFixed(3), 'y:', data.y?.toFixed(3));
+            try {
+                // Check if accessibility service is enabled
+                const accessibilityOk = await remoteControlService.isServiceEnabled();
+                console.log('📱 Accessibility Service enabled:', accessibilityOk);
+
+                if (!accessibilityOk) {
+                    console.error('❌ Accessibility Service NOT enabled - remote control will not work!');
+                    return;
+                }
+
+                // Map the event types to what RemoteControlService expects
+                let action: string = data.type;
+                if (data.type === 'down') action = 'click';  // mousedown triggers tap
+                if (data.type === 'up') action = 'move';     // mouseup - just acknowledge
+                if (data.type === 'scroll') action = 'wheel';
+
+                console.log('📱 Mapped action:', action);
+
+                const result = await remoteControlService.handleRemoteInputEvent({
+                    type: 'mouse',
+                    action: action,
+                    data: {
+                        x: data.x,
+                        y: data.y,
+                        button: data.button || 0,
+                        deltaX: data.deltaX || 0,
+                        deltaY: data.deltaY || 0,
+                    },
+                });
+                console.log('📱 Remote control result:', result);
+            } catch (error) {
+                console.error('Error handling mouse event:', error);
+            }
+        });
+
+        socketService.onKeyboardEvent(async (data) => {
+            console.log('📱 Handling Socket.IO keyboard event:', data.type, data.key);
+            try {
+                await remoteControlService.handleRemoteInputEvent({
+                    type: 'keyboard',
+                    action: data.type === 'down' ? 'press' : 'special',
+                    data: {
+                        key: data.key,
+                        code: data.code,
+                    },
+                });
+            } catch (error) {
+                console.error('Error handling keyboard event:', error);
+            }
+        });
+
         return () => {
             cleanupRef.current = true;
             cleanup();

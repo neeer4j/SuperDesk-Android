@@ -47,6 +47,24 @@ export interface IceCandidateData {
     from: string;
 }
 
+// Remote control input event types (received when hosting)
+export interface MouseEventData {
+    sessionId: string;
+    type: 'move' | 'click' | 'down' | 'up' | 'scroll';
+    x: number;
+    y: number;
+    button?: number;
+    deltaX?: number;
+    deltaY?: number;
+}
+
+export interface KeyboardEventData {
+    sessionId: string;
+    type: 'down' | 'up';
+    key: string;
+    code: string;
+}
+
 class SocketService {
     private socket: Socket | null = null;
     private serverUrl: string = DEFAULT_SERVER_URL;
@@ -68,6 +86,8 @@ class SocketService {
     private onRemoteControlDisabledCallback?: () => void;
     private onConnectedCallback?: () => void;
     private onDisconnectedCallback?: () => void;
+    private onMouseEventCallback?: (data: MouseEventData) => void;
+    private onKeyboardEventCallback?: (data: KeyboardEventData) => void;
 
     connect(serverUrl?: string): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -177,6 +197,17 @@ class SocketService {
         this.socket.on('remote-control-disabled', () => {
             console.log('📱 Remote control disabled');
             this.onRemoteControlDisabledCallback?.();
+        });
+
+        // Remote control input events (when we are host being controlled)
+        this.socket.on('mouse-event', (data: MouseEventData) => {
+            console.log('📱 HOST received mouse event:', data.type, 'x:', data.x?.toFixed(2), 'y:', data.y?.toFixed(2));
+            this.onMouseEventCallback?.(data);
+        });
+
+        this.socket.on('keyboard-event', (data: KeyboardEventData) => {
+            console.log('📱 HOST received keyboard event:', data.type, data.key);
+            this.onKeyboardEventCallback?.(data);
         });
     }
 
@@ -338,6 +369,15 @@ class SocketService {
 
     onRemoteControlDisabled(callback: () => void) {
         this.onRemoteControlDisabledCallback = callback;
+    }
+
+    // Input event handlers (when this device is host being controlled)
+    onMouseEvent(callback: (data: MouseEventData) => void) {
+        this.onMouseEventCallback = callback;
+    }
+
+    onKeyboardEvent(callback: (data: KeyboardEventData) => void) {
+        this.onKeyboardEventCallback = callback;
     }
 
     // ===== Utility =====

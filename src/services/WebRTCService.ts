@@ -363,6 +363,52 @@ class WebRTCService {
             this.peerConnection?.addTrack(track, stream);
         });
         console.log('📱 All tracks added to peer connection');
+
+        // Configure low-latency encoding for video senders
+        this.configureVideoEncoders();
+    }
+
+    // Configure video encoders for low latency
+    private async configureVideoEncoders() {
+        if (!this.peerConnection) return;
+
+        try {
+            const senders = (this.peerConnection as any).getSenders?.() || [];
+            console.log('📱 Configuring', senders.length, 'senders for LOW LATENCY');
+
+            for (const sender of senders) {
+                if (sender.track?.kind === 'video') {
+                    const params = sender.getParameters?.();
+                    if (params) {
+                        // Set encoding parameters for LOW LATENCY
+                        if (!params.encodings || params.encodings.length === 0) {
+                            params.encodings = [{}];
+                        }
+
+                        params.encodings[0] = {
+                            ...params.encodings[0],
+                            maxBitrate: 1500000,  // 1.5 Mbps - reduced for faster encoding
+                            maxFramerate: 15,     // 15fps - lower framerate = less latency
+                            // Priority for low latency
+                            priority: 'high',
+                            networkPriority: 'high',
+                        };
+
+                        // Allow quality reduction for lower latency
+                        params.degradationPreference = 'balanced';
+
+                        await sender.setParameters(params);
+                        console.log('📱 ✅ Low-latency encoding configured:', {
+                            maxBitrate: params.encodings[0].maxBitrate,
+                            maxFramerate: params.encodings[0].maxFramerate,
+                            degradation: params.degradationPreference,
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('📱 Could not configure video encoders:', error);
+        }
     }
 
     // Helper to wait for track to be ready (producing frames)
@@ -407,9 +453,10 @@ class WebRTCService {
             console.log('📱 Calling mediaDevices.getDisplayMedia...');
             const stream = await (mediaDevices as any).getDisplayMedia({
                 video: {
-                    frameRate: 30,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
+                    // Lower resolution for reduced latency
+                    frameRate: { ideal: 15, max: 30 },
+                    width: { ideal: 720, max: 1280 },   // 720p for less encoding overhead
+                    height: { ideal: 1280, max: 1920 }, // Portrait mode for mobile
                 },
                 audio: false,
             });
