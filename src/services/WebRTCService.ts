@@ -156,7 +156,7 @@ class WebRTCService {
         } else {
             (this.peerConnection as any).ondatachannel = (event: RTCDataChannelEvent) => {
                 console.log('📱 Data channel received:', event.channel.label);
-                if (event.channel.label === 'files') {
+                if (event.channel.label === 'files' || event.channel.label === 'file-transfer') {
                     this.fileDataChannel = event.channel;
                     this.setupFileDataChannelHandlers();
                 } else if (event.channel.label === 'input') {
@@ -182,7 +182,7 @@ class WebRTCService {
     private setupFileDataChannel() {
         if (!this.peerConnection) return;
 
-        this.fileDataChannel = (this.peerConnection as any).createDataChannel('files', {
+        this.fileDataChannel = (this.peerConnection as any).createDataChannel('file-transfer', {
             ordered: true,
         });
         this.setupFileDataChannelHandlers();
@@ -190,6 +190,11 @@ class WebRTCService {
 
     private setupFileDataChannelHandlers() {
         if (!this.fileDataChannel) return;
+
+        if (this.fileDataChannel.readyState === 'open') {
+            console.log('📁 File data channel already open');
+            fileTransferService.setDataChannel(this.fileDataChannel as any);
+        }
 
         this.fileDataChannel.onopen = () => {
             console.log('📁 File data channel opened');

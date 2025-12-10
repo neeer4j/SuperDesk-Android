@@ -1,4 +1,5 @@
 // Session Screen - Host mode (share phone screen to PC via WebRTC)
+// Redesigned to integrate with SessionManager - going back doesn't end session
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
@@ -14,6 +15,7 @@ import {
 import { socketService } from '../services/SocketService';
 import { webRTCService } from '../services/WebRTCService';
 import { remoteControlService } from '../services/RemoteControlService';
+import { sessionManager } from '../services/SessionManager';
 
 interface SessionScreenProps {
     route: {
@@ -43,13 +45,15 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
         checkAccessibilityService();
         initializeWebRTC();
 
-        // Handle session end
-        socketService.onSessionEnded(() => {
+        // Handle session end from external source (e.g., host tab)
+        const handleSessionEnded = () => {
             if (!cleanupRef.current) {
-                Alert.alert('Session Ended', 'The session has been ended.');
-                handleGoBack(true);
+                Alert.alert('Session Ended', 'The session has been ended.', [
+                    { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
             }
-        });
+        };
+        sessionManager.on('sessionEnded', handleSessionEnded);
 
         // Set up Socket.IO event handlers for remote control input
         // This handles events sent by the desktop via Socket.IO relay
@@ -109,7 +113,9 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
 
         return () => {
             cleanupRef.current = true;
-            cleanup();
+            sessionManager.off('sessionEnded', handleSessionEnded);
+            // Only stop screen sharing, don't end the session!
+            stopScreenShareOnly();
         };
     }, []);
 
@@ -142,12 +148,14 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
 
                 if (state === 'connected') {
                     setStatus('connected');
+                    sessionManager.setWebRTCConnected(true);
                     // Start screen sharing once connected
                     startScreenShare();
                 } else if (state === 'failed') {
                     setError('Connection failed. Please try again.');
                     setStatus('error');
                 } else if (state === 'disconnected') {
+                    sessionManager.setWebRTCConnected(false);
                     if (!cleanupRef.current) {
                         Alert.alert('Disconnected', 'Lost connection to the viewer.');
                     }
@@ -219,6 +227,9 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
             webRTCService.addStream(stream);
             setIsCapturing(true);
 
+            // Update SessionManager
+            sessionManager.setScreenSharing(true);
+
             // Small additional delay to ensure peer connection is ready
             console.log('📱 Waiting before creating offer...');
             await new Promise<void>(r => setTimeout(r, 300));
@@ -240,36 +251,56 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
         console.log('📱 Screen sharing started successfully');
     };
 
-    const cleanup = async () => {
-        // WebRTC service handles stream cleanup internally
+    // Stop screen sharing without ending the session
+    const stopScreenShareOnly = () => {
+        console.log('📱 Stopping screen share only (session remains active)');
         webRTCService.close();
+        sessionManager.setScreenSharing(false);
+        sessionManager.setWebRTCConnected(false);
     };
 
-    const handleGoBack = (silent: boolean = false) => {
-        const doGoBack = async () => {
-            await cleanup();
-            navigation.goBack();
-        };
+    // End the entire session
+    const endSession = () => {
+        console.log('📱 Ending entire session');
+        webRTCService.close();
+        sessionManager.endSession();
+    };
 
-        if (silent) {
-            doGoBack();
-        } else {
-            Alert.alert(
-                'End Session',
-                'Are you sure you want to stop sharing your screen?',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'End Session',
-                        style: 'destructive',
-                        onPress: () => {
-                            socketService.endSession(sessionId);
-                            doGoBack();
-                        },
+    // Go back to previous screen without ending session
+    const handleGoBack = () => {
+        Alert.alert(
+            'Stop Screen Share?',
+            'This will stop sharing your screen, but the session will remain active. You can return to share again.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Stop Sharing',
+                    onPress: () => {
+                        stopScreenShareOnly();
+                        navigation.goBack();
                     },
-                ]
-            );
-        }
+                },
+            ]
+        );
+    };
+
+    // End entire session
+    const handleEndSession = () => {
+        Alert.alert(
+            'End Session',
+            'This will completely end the session and disconnect the guest.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'End Session',
+                    style: 'destructive',
+                    onPress: () => {
+                        endSession();
+                        navigation.goBack();
+                    },
+                },
+            ]
+        );
     };
 
     const handleShareCode = async () => {
@@ -321,10 +352,10 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => handleGoBack()}>
+                <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
                     <Text style={styles.backButtonText}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Hosting Session</Text>
+                <Text style={styles.title}>Screen Sharing</Text>
                 <View style={styles.placeholder} />
             </View>
 
@@ -396,18 +427,24 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                         • The viewer can see everything on your screen
                     </Text>
                     <Text style={styles.tipText}>
-                        • Tap "End Session" when you're done sharing
+                        • Press "← Back" to stop sharing but keep session active
                     </Text>
                     <Text style={styles.tipText}>
-                        • Keep this app in the foreground for best performance
+                        • You can return to share again from the Host tab
+                    </Text>
+                    <Text style={styles.tipText}>
+                        • Go to Files tab to transfer files while sharing
                     </Text>
                 </View>
             </View>
 
-            {/* Footer */}
+            {/* Footer with two buttons */}
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.stopButton} onPress={() => handleGoBack()}>
-                    <Text style={styles.stopButtonText}>End Session</Text>
+                <TouchableOpacity style={styles.stopSharingButton} onPress={handleGoBack}>
+                    <Text style={styles.stopSharingButtonText}>Stop Sharing</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.endSessionButton} onPress={handleEndSession}>
+                    <Text style={styles.endSessionButtonText}>End Session</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -578,16 +615,33 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     footer: {
+        flexDirection: 'row',
         padding: 20,
         paddingBottom: 40,
+        gap: 12,
     },
-    stopButton: {
+    stopSharingButton: {
+        flex: 1,
+        backgroundColor: '#f59e0b20',
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#f59e0b',
+    },
+    stopSharingButtonText: {
+        color: '#f59e0b',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    endSessionButton: {
+        flex: 1,
         backgroundColor: '#ef4444',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
     },
-    stopButtonText: {
+    endSessionButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '600',

@@ -1,4 +1,5 @@
 // Host Session Screen - Share your device screen with session code
+// Redesigned to use SessionManager for persistent sessions across tabs
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
@@ -10,59 +11,102 @@ import {
     Clipboard,
     Alert,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { SettingsIcon } from '../components/Icons';
-import { socketService } from '../services/SocketService';
+import { sessionManager, SessionState } from '../services/SessionManager';
 import { webRTCService } from '../services/WebRTCService';
 
 interface HostSessionScreenProps {
     navigation: any;
 }
 
-type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'session-active' | 'guest-connected';
+type ConnectionStatus = 'disconnected' | 'connecting' | 'session-active' | 'guest-connected';
 
 const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => {
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
     const [sessionCode, setSessionCode] = useState('');
+    const [guestId, setGuestId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
 
     useEffect(() => {
-        // Set up socket event listeners
-        socketService.onSessionCreated((data) => {
-            console.log('📱 Session created:', data.sessionId);
-            setSessionCode(data.sessionId);
-            setConnectionStatus('session-active');
-            setError(null);
+        // Initialize state from SessionManager
+        const state = sessionManager.getState();
+        if (state.isActive && state.role === 'host') {
+            setSessionCode(state.sessionId || '');
+            setGuestId(state.peerId);
+            setConnectionStatus(state.peerId ? 'guest-connected' : 'session-active');
+            setIsScreenSharing(state.isScreenSharing);
+        }
+
+        // Subscribe to session state changes
+        const unsubscribe = sessionManager.subscribe((newState: SessionState, prevState: SessionState) => {
+            if (newState.role === 'host' || newState.role === null) {
+                if (!newState.isActive) {
+                    setConnectionStatus('disconnected');
+                    setSessionCode('');
+                    setGuestId(null);
+                    setIsScreenSharing(false);
+                } else {
+                    setSessionCode(newState.sessionId || '');
+                    setGuestId(newState.peerId);
+                    setConnectionStatus(newState.peerId ? 'guest-connected' : 'session-active');
+                    setIsScreenSharing(newState.isScreenSharing);
+                }
+            }
         });
 
-        socketService.onGuestJoined(async (data) => {
+        // Listen for guest joined event
+        const handleGuestJoined = (data: { guestId: string; sessionId: string }) => {
             console.log('📱 Guest joined:', data.guestId);
+            setGuestId(data.guestId);
             setConnectionStatus('guest-connected');
 
-            // Navigate to session screen to handle WebRTC
-            navigation.navigate('Session', {
-                role: 'host',
-                sessionId: data.sessionId,
-                guestId: data.guestId,
-            });
-        });
+            // AUTOMATICALLY Initialize WebRTC connection for file transfer
+            const initDataConnection = async () => {
+                try {
+                    console.log('📱 Initializing WebRTC data connection...');
+                    await webRTCService.initialize('host', data.sessionId);
 
-        socketService.onSessionError((errorMsg) => {
-            console.error('❌ Session error:', errorMsg);
+                    // Wait a moment for initialization
+                    await new Promise(r => setTimeout(r, 500));
+
+                    // Create offer to establish data channel
+                    await webRTCService.createOffer();
+                    console.log('📱 Data connection offer sent');
+                } catch (err) {
+                    console.error('❌ Failed to init data connection:', err);
+                }
+            };
+
+            initDataConnection();
+        };
+        sessionManager.on('guestJoined', handleGuestJoined);
+
+        // Listen for errors
+        const handleError = (errorMsg: string) => {
             setError(errorMsg);
             setConnectionStatus('disconnected');
-        });
+        };
+        sessionManager.on('error', handleError);
 
-        socketService.onSessionEnded(() => {
-            console.log('📱 Session ended');
-            handleStopHosting(true);
-        });
+        // Listen for session ended
+        const handleSessionEnded = () => {
+            setConnectionStatus('disconnected');
+            setSessionCode('');
+            setGuestId(null);
+            setIsScreenSharing(false);
+        };
+        sessionManager.on('sessionEnded', handleSessionEnded);
 
         return () => {
-            // Cleanup on unmount
-            if (connectionStatus !== 'disconnected') {
-                socketService.endSession();
-            }
+            unsubscribe();
+            sessionManager.off('guestJoined', handleGuestJoined);
+            sessionManager.off('error', handleError);
+            sessionManager.off('sessionEnded', handleSessionEnded);
+            // NOTE: We do NOT end the session on unmount anymore!
+            // Session persists across tab navigation
         };
     }, []);
 
@@ -71,13 +115,7 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
         setError(null);
 
         try {
-            // Connect to signaling server if not connected
-            if (!socketService.isConnected()) {
-                await socketService.connect();
-            }
-
-            // Create session with mobile type
-            socketService.createSession('mobile');
+            await sessionManager.createSession();
         } catch (err: any) {
             console.error('❌ Failed to start hosting:', err);
             setError(err.message || 'Failed to connect to server');
@@ -85,32 +123,39 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
         }
     };
 
-    const handleStopHosting = (silent: boolean = false) => {
-        const stopSession = () => {
-            if (sessionCode) {
-                socketService.endSession(sessionCode);
-            }
-            setConnectionStatus('disconnected');
-            setSessionCode('');
-            setError(null);
-        };
-
-        if (silent) {
-            stopSession();
-        } else {
-            Alert.alert(
-                'Stop Hosting',
-                'Are you sure you want to stop the session?',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'Stop',
-                        style: 'destructive',
-                        onPress: stopSession,
+    const handleStopHosting = () => {
+        Alert.alert(
+            'End Session',
+            'Are you sure you want to end the session? This will disconnect any connected guests.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'End Session',
+                    style: 'destructive',
+                    onPress: () => {
+                        sessionManager.endSession();
                     },
-                ]
+                },
+            ]
+        );
+    };
+
+    const handleShareScreen = () => {
+        // Navigate to Session screen which will request screen capture permission
+        if (!guestId) {
+            Alert.alert(
+                'No Guest Connected',
+                'Wait for someone to join your session before sharing your screen.',
+                [{ text: 'OK' }]
             );
+            return;
         }
+
+        navigation.navigate('Session', {
+            role: 'host',
+            sessionId: sessionCode,
+            guestId: guestId,
+        });
     };
 
     const handleCopyCode = useCallback(() => {
@@ -132,12 +177,12 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
     const handleRefreshCode = useCallback(async () => {
         if (!sessionCode) return;
 
-        // End current session and create a new one
-        setConnectionStatus('connecting');
-        socketService.endSession(sessionCode);
-
-        // Create a new session
-        socketService.createSession('mobile');
+        try {
+            setConnectionStatus('connecting');
+            await sessionManager.refreshSessionCode();
+        } catch (err: any) {
+            setError(err.message || 'Failed to refresh code');
+        }
     }, [sessionCode]);
 
     const formatCode = (code: string) => {
@@ -151,12 +196,10 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
         switch (connectionStatus) {
             case 'connecting':
                 return 'Connecting to server...';
-            case 'connected':
-                return 'Connected, creating session...';
             case 'session-active':
                 return 'Waiting for someone to join...';
             case 'guest-connected':
-                return 'Guest connected!';
+                return isScreenSharing ? 'Screen sharing active' : 'Guest connected! Ready to share screen';
             default:
                 return '';
         }
@@ -223,7 +266,8 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                         <Text style={styles.infoTitle}>How it works:</Text>
                         <Text style={styles.infoText}>1. Tap "Start Hosting" to generate a session code</Text>
                         <Text style={styles.infoText}>2. Share the code with someone you trust</Text>
-                        <Text style={styles.infoText}>3. They can view and control your screen</Text>
+                        <Text style={styles.infoText}>3. Press "Share Screen" when they connect</Text>
+                        <Text style={styles.infoText}>4. You can navigate to other tabs while session is active</Text>
                     </View>
                 </>
             ) : (
@@ -231,14 +275,21 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                     {/* Session Active Card */}
                     <View style={[styles.card, styles.activeCard]}>
                         <View style={styles.statusBadge}>
-                            <View style={styles.statusDot} />
-                            <Text style={styles.statusBadgeText}>Session Active</Text>
+                            <View style={[
+                                styles.statusDot,
+                                { backgroundColor: connectionStatus === 'guest-connected' ? '#22c55e' : '#10b981' }
+                            ]} />
+                            <Text style={styles.statusBadgeText}>
+                                {connectionStatus === 'guest-connected' ? 'Guest Connected' : 'Session Active'}
+                            </Text>
                         </View>
 
                         <Text style={styles.sessionLabel}>Your Session Code</Text>
                         <Text style={styles.sessionCode}>{formatCode(sessionCode)}</Text>
                         <Text style={styles.sessionHint}>
-                            Share this code with the person who will connect
+                            {connectionStatus === 'guest-connected'
+                                ? 'Press "Share Screen" to start sharing'
+                                : 'Share this code with the person who will connect'}
                         </Text>
 
                         {/* Action Buttons */}
@@ -260,7 +311,7 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles.actionButton, styles.shareButton]}
+                                style={[styles.actionButton, styles.shareCodeButton]}
                                 onPress={handleShareCode}
                             >
                                 <Text style={styles.actionButtonIcon}>📤</Text>
@@ -269,12 +320,25 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                         </View>
                     </View>
 
+                    {/* Share Screen Button - Only shown when guest is connected */}
+                    {connectionStatus === 'guest-connected' && (
+                        <TouchableOpacity
+                            style={[styles.button, styles.shareScreenButton]}
+                            onPress={handleShareScreen}
+                        >
+                            <Text style={styles.shareScreenIcon}>📺</Text>
+                            <Text style={styles.shareScreenText}>
+                                {isScreenSharing ? 'Return to Screen Share' : 'Share Screen'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
                     {/* Stop Button */}
                     <TouchableOpacity
                         style={[styles.button, styles.stopButton]}
-                        onPress={() => handleStopHosting(false)}
+                        onPress={handleStopHosting}
                     >
-                        <Text style={styles.stopButtonText}>Stop Hosting</Text>
+                        <Text style={styles.stopButtonText}>End Session</Text>
                     </TouchableOpacity>
 
                     {/* Status */}
@@ -283,9 +347,16 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                             <ActivityIndicator size="small" color="#8b5cf6" style={{ marginBottom: 10 }} />
                         )}
                         <Text style={styles.waitingText}>{getStatusText()}</Text>
-                        <Text style={styles.waitingHint}>
-                            The other person should enter this code in "Join Session"
-                        </Text>
+                        {connectionStatus === 'session-active' && (
+                            <Text style={styles.waitingHint}>
+                                The other person should enter this code in "Join Session"
+                            </Text>
+                        )}
+                        {connectionStatus === 'guest-connected' && !isScreenSharing && (
+                            <Text style={styles.waitingHint}>
+                                Tap "Share Screen" above to start sharing your screen
+                            </Text>
+                        )}
                     </View>
                 </>
             )}
@@ -365,6 +436,21 @@ const styles = StyleSheet.create({
     buttonContent: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    shareScreenButton: {
+        backgroundColor: '#22c55e',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginBottom: 12,
+    },
+    shareScreenIcon: {
+        fontSize: 20,
+        marginRight: 10,
+    },
+    shareScreenText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: '600',
     },
     stopButton: {
         backgroundColor: '#ef444420',
@@ -466,7 +552,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#f59e0b',
     },
-    shareButton: {
+    shareCodeButton: {
         backgroundColor: '#8b5cf6',
     },
     actionButtonIcon: {

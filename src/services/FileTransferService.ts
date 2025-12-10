@@ -29,6 +29,11 @@ export interface FileTransferMessage {
     index?: number;
     total?: number;
     data?: string; // base64 encoded chunk
+
+    // Compatibility fields
+    fileName?: string;
+    fileSize?: number;
+    fileType?: string;
 }
 
 export interface TransferProgress {
@@ -252,8 +257,11 @@ class FileTransferService {
                 type: 'file-start',
                 id: transferId,
                 name,
+                fileName: name, // Compatibility
                 size,
+                fileSize: size, // Compatibility
                 mimeType: type || 'application/octet-stream',
+                fileType: type || 'application/octet-stream', // Compatibility
             });
 
             // Read file as base64

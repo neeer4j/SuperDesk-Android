@@ -1,4 +1,5 @@
 // Join Session Screen - Connect to a remote session with code
+// Redesigned to use SessionManager for persistent sessions across tabs
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -11,60 +12,80 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
+    Share,
+    Clipboard,
+    Keyboard,
 } from 'react-native';
 import { SettingsIcon } from '../components/Icons';
-import { socketService } from '../services/SocketService';
+import { sessionManager, SessionState } from '../services/SessionManager';
+import { webRTCService } from '../services/WebRTCService';
 
 interface JoinSessionScreenProps {
     navigation: any;
 }
 
-type JoinStatus = 'idle' | 'connecting' | 'joining' | 'error';
+type JoinStatus = 'idle' | 'connecting' | 'joining' | 'connected' | 'error';
 
 const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => {
     const [sessionCode, setSessionCode] = useState('');
     const [status, setStatus] = useState<JoinStatus>('idle');
     const [error, setError] = useState<string | null>(null);
+    const [hostConnected, setHostConnected] = useState(false);
 
     useEffect(() => {
-        // Set up socket event listeners
-        socketService.onSessionJoined((sessionId) => {
-            console.log('📱 Session joined successfully:', sessionId);
-            setStatus('idle');
-            setError(null);
+        // Initialize state from SessionManager
+        const state = sessionManager.getState();
+        if (state.isActive && state.role === 'guest') {
+            setSessionCode(state.sessionId || '');
+            setStatus('connected');
+            setHostConnected(true);
+        }
 
-            // Navigate to remote screen to view the host's screen
-            navigation.navigate('Remote', {
-                sessionId: sessionId,
-                role: 'viewer',
-            });
+        // Subscribe to session state changes
+        const unsubscribe = sessionManager.subscribe((newState: SessionState, prevState: SessionState) => {
+            if (newState.role === 'guest') {
+                if (newState.isActive) {
+                    setStatus('connected');
+                    setSessionCode(newState.sessionId || '');
+                    setHostConnected(true);
+                }
+            } else if (newState.role === null && prevState.role === 'guest') {
+                // Session ended
+                setStatus('idle');
+                setSessionCode('');
+                setHostConnected(false);
+            }
         });
 
-        socketService.onSessionError((errorMsg) => {
-            console.error('❌ Session error:', errorMsg);
-            setError(errorMsg);
-            setStatus('error');
-        });
-
-        socketService.onHostDisconnected(() => {
+        // Listen for host disconnection
+        const handleHostDisconnected = () => {
             Alert.alert('Host Disconnected', 'The host has ended the session.');
             setStatus('idle');
-        });
-
-        // Connect to server on mount if not connected
-        const connectIfNeeded = async () => {
-            if (!socketService.isConnected()) {
-                try {
-                    await socketService.connect();
-                } catch (err) {
-                    console.log('📱 Socket connection will happen on join');
-                }
-            }
+            setHostConnected(false);
         };
-        connectIfNeeded();
+        sessionManager.on('hostDisconnected', handleHostDisconnected);
+
+        // Listen for session ended
+        const handleSessionEnded = () => {
+            setStatus('idle');
+            setHostConnected(false);
+        };
+        sessionManager.on('sessionEnded', handleSessionEnded);
+
+        // Listen for errors
+        const handleError = (errorMsg: string) => {
+            setError(errorMsg);
+            setStatus('error');
+        };
+        sessionManager.on('error', handleError);
 
         return () => {
-            // Cleanup is handled by the RemoteScreen
+            unsubscribe();
+            sessionManager.off('hostDisconnected', handleHostDisconnected);
+            sessionManager.off('sessionEnded', handleSessionEnded);
+            sessionManager.off('error', handleError);
+            // NOTE: We do NOT end the session on unmount anymore!
+            // Session persists across tab navigation
         };
     }, [navigation]);
 
@@ -97,19 +118,26 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
         setError(null);
 
         try {
-            // Connect to server if not connected
-            if (!socketService.isConnected()) {
-                await socketService.connect();
+            // Join session
+            await sessionManager.joinSession(sessionCode);
+            console.log('✅ Joined session successfully');
+            setStatus('connected');
+
+            // Initialize WebRTC to be ready for file transfer data channel
+            try {
+                console.log('📱 Initializing WebRTC listener...');
+                await webRTCService.initialize('viewer', sessionCode);
+            } catch (err) {
+                console.error('❌ Failed to init WebRTC:', err);
             }
 
-            setStatus('joining');
-
-            // Join the session
-            socketService.joinSession(sessionCode);
+            // Reset input
+            setSessionCode('');
+            Keyboard.dismiss(); // Dismiss keyboard on successful join
 
             // Set a timeout for if no response
             setTimeout(() => {
-                if (status === 'joining') {
+                if (status === 'joining') { // This condition might not be met if status is already 'connected'
                     setError('Connection timed out. Please check the session code and try again.');
                     setStatus('error');
                 }
@@ -122,18 +150,45 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
         }
     };
 
+    const handleViewRemote = () => {
+        // Navigate to remote screen to view the host's screen
+        navigation.navigate('Remote', {
+            sessionId: sessionCode,
+            role: 'viewer',
+        });
+    };
+
+    const handleDisconnect = () => {
+        Alert.alert(
+            'Disconnect',
+            'Are you sure you want to leave this session?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Disconnect',
+                    style: 'destructive',
+                    onPress: () => {
+                        sessionManager.endSession();
+                    },
+                },
+            ]
+        );
+    };
+
     const getButtonText = () => {
         switch (status) {
             case 'connecting':
                 return 'Connecting...';
             case 'joining':
                 return 'Joining...';
+            case 'connected':
+                return 'Connected';
             default:
                 return 'Join Session';
         }
     };
 
-    const isButtonDisabled = sessionCode.length !== 8 || status === 'connecting' || status === 'joining';
+    const isButtonDisabled = sessionCode.length !== 8 || status === 'connecting' || status === 'joining' || status === 'connected';
 
     return (
         <View style={styles.container}>
@@ -156,70 +211,116 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={styles.content}
             >
-                {/* Join Session Card */}
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Join Remote Session</Text>
-                    <Text style={styles.cardDescription}>
-                        Enter the 8-character session code from the host to connect and view their screen
-                    </Text>
+                {status !== 'connected' ? (
+                    <>
+                        {/* Join Session Card */}
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>Join Remote Session</Text>
+                            <Text style={styles.cardDescription}>
+                                Enter the 8-character session code from the host to connect and view their screen
+                            </Text>
 
-                    <View style={styles.codeInputContainer}>
-                        <Text style={styles.codeLabel}>SESSION CODE</Text>
-                        <TextInput
-                            style={[
-                                styles.codeInput,
-                                error && styles.codeInputError,
-                            ]}
-                            placeholder="XXXX-XXXX"
-                            placeholderTextColor="#444"
-                            value={formatDisplayCode(sessionCode)}
-                            onChangeText={handleCodeChange}
-                            maxLength={9} // 8 chars + hyphen
-                            autoCapitalize="characters"
-                            autoCorrect={false}
-                            keyboardType="default"
-                            editable={status !== 'connecting' && status !== 'joining'}
-                        />
-                        <Text style={styles.codeHint}>
-                            {sessionCode.length}/8 characters
-                        </Text>
-                    </View>
-
-                    {error && (
-                        <View style={styles.errorContainer}>
-                            <Text style={styles.errorText}>⚠️ {error}</Text>
-                        </View>
-                    )}
-
-                    <TouchableOpacity
-                        style={[
-                            styles.button,
-                            styles.primaryButton,
-                            isButtonDisabled && styles.buttonDisabled,
-                        ]}
-                        onPress={handleJoinSession}
-                        disabled={isButtonDisabled}
-                    >
-                        {(status === 'connecting' || status === 'joining') ? (
-                            <View style={styles.buttonContent}>
-                                <ActivityIndicator size="small" color="#ffffff" />
-                                <Text style={[styles.buttonText, { marginLeft: 10 }]}>
-                                    {getButtonText()}
+                            <View style={styles.codeInputContainer}>
+                                <Text style={styles.codeLabel}>SESSION CODE</Text>
+                                <TextInput
+                                    style={[
+                                        styles.codeInput,
+                                        error && styles.codeInputError,
+                                    ]}
+                                    placeholder="XXXX-XXXX"
+                                    placeholderTextColor="#444"
+                                    value={formatDisplayCode(sessionCode)}
+                                    onChangeText={handleCodeChange}
+                                    maxLength={9} // 8 chars + hyphen
+                                    autoCapitalize="characters"
+                                    autoCorrect={false}
+                                    keyboardType="default"
+                                    editable={status !== 'connecting' && status !== 'joining'}
+                                />
+                                <Text style={styles.codeHint}>
+                                    {sessionCode.length}/8 characters
                                 </Text>
                             </View>
-                        ) : (
-                            <Text style={styles.buttonText}>{getButtonText()}</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
 
-                {/* Info */}
-                <View style={styles.infoContainer}>
-                    <Text style={styles.infoTitle}>How to connect:</Text>
-                    <Text style={styles.infoText}>1. Ask the host for their 8-character session code</Text>
-                    <Text style={styles.infoText}>2. Enter the code above</Text>
-                    <Text style={styles.infoText}>3. Tap "Join Session" to view and control their screen</Text>
-                </View>
+                            {error && (
+                                <View style={styles.errorContainer}>
+                                    <Text style={styles.errorText}>⚠️ {error}</Text>
+                                </View>
+                            )}
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.button,
+                                    styles.primaryButton,
+                                    isButtonDisabled && styles.buttonDisabled,
+                                ]}
+                                onPress={handleJoinSession}
+                                disabled={isButtonDisabled}
+                            >
+                                {(status === 'connecting' || status === 'joining') ? (
+                                    <View style={styles.buttonContent}>
+                                        <ActivityIndicator size="small" color="#ffffff" />
+                                        <Text style={[styles.buttonText, { marginLeft: 10 }]}>
+                                            {getButtonText()}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.buttonText}>{getButtonText()}</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Info */}
+                        <View style={styles.infoContainer}>
+                            <Text style={styles.infoTitle}>How to connect:</Text>
+                            <Text style={styles.infoText}>1. Ask the host for their 8-character session code</Text>
+                            <Text style={styles.infoText}>2. Enter the code above</Text>
+                            <Text style={styles.infoText}>3. Tap "Join Session" to connect</Text>
+                            <Text style={styles.infoText}>4. Press "View Remote" to see and control their screen</Text>
+                        </View>
+                    </>
+                ) : (
+                    <>
+                        {/* Connected Card */}
+                        <View style={[styles.card, styles.connectedCard]}>
+                            <View style={styles.connectedBadge}>
+                                <View style={styles.connectedDot} />
+                                <Text style={styles.connectedBadgeText}>Connected to Session</Text>
+                            </View>
+
+                            <Text style={styles.sessionLabel}>SESSION CODE</Text>
+                            <Text style={styles.sessionCodeDisplay}>{formatDisplayCode(sessionCode)}</Text>
+                            <Text style={styles.connectedHint}>
+                                You're connected! Press "View Remote" to see and control the host's screen.
+                            </Text>
+
+                            {/* View Remote Button */}
+                            <TouchableOpacity
+                                style={[styles.button, styles.viewRemoteButton]}
+                                onPress={handleViewRemote}
+                            >
+                                <Text style={styles.viewRemoteIcon}>🖥️</Text>
+                                <Text style={styles.viewRemoteText}>View Remote Screen</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Disconnect Button */}
+                        <TouchableOpacity
+                            style={[styles.button, styles.disconnectButton]}
+                            onPress={handleDisconnect}
+                        >
+                            <Text style={styles.disconnectButtonText}>Disconnect</Text>
+                        </TouchableOpacity>
+
+                        {/* Tips */}
+                        <View style={styles.infoContainer}>
+                            <Text style={styles.infoTitle}>💡 Tips:</Text>
+                            <Text style={styles.infoText}>• You can navigate to other tabs while connected</Text>
+                            <Text style={styles.infoText}>• Go to Files tab to transfer files with the host</Text>
+                            <Text style={styles.infoText}>• Return here anytime to view their screen</Text>
+                        </View>
+                    </>
+                )}
             </KeyboardAvoidingView>
         </View>
     );
@@ -259,6 +360,10 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         borderWidth: 1,
         borderColor: '#2a2a3a',
+    },
+    connectedCard: {
+        borderColor: '#22c55e',
+        borderWidth: 2,
     },
     cardTitle: {
         fontSize: 22,
@@ -330,6 +435,76 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#ffffff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    connectedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#22c55e20',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+        marginBottom: 24,
+    },
+    connectedDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#22c55e',
+        marginRight: 8,
+    },
+    connectedBadgeText: {
+        color: '#22c55e',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    sessionLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#888',
+        marginBottom: 8,
+        textAlign: 'center',
+        letterSpacing: 1,
+    },
+    sessionCodeDisplay: {
+        fontSize: 36,
+        fontWeight: 'bold',
+        color: '#ffffff',
+        textAlign: 'center',
+        letterSpacing: 4,
+        marginBottom: 16,
+    },
+    connectedHint: {
+        fontSize: 14,
+        color: '#888',
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    viewRemoteButton: {
+        backgroundColor: '#22c55e',
+        flexDirection: 'row',
+        justifyContent: 'center',
+    },
+    viewRemoteIcon: {
+        fontSize: 20,
+        marginRight: 10,
+    },
+    viewRemoteText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    disconnectButton: {
+        backgroundColor: '#ef444420',
+        borderWidth: 1,
+        borderColor: '#ef4444',
+        marginBottom: 20,
+    },
+    disconnectButtonText: {
+        color: '#ef4444',
         fontSize: 16,
         fontWeight: '600',
     },

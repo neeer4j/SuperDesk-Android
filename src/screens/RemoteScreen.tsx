@@ -19,6 +19,7 @@ import { RTCView, MediaStream } from 'react-native-webrtc';
 import { socketService } from '../services/SocketService';
 import { webRTCService } from '../services/WebRTCService';
 import { inputService } from '../services/InputService';
+import { sessionManager } from '../services/SessionManager';
 
 interface RemoteScreenProps {
     route: {
@@ -52,6 +53,7 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
 
     const cleanupRef = useRef(false);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const resolutionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Calculate video display area when container or stream dimensions change
     useEffect(() => {
@@ -92,8 +94,23 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         });
     }, [containerDimensions, streamDimensions]);
 
+    // Setup WebRTC and event listeners
     useEffect(() => {
-        initializeConnection();
+        setupRemoteStreamListener();
+
+        // Only initialize if not already connected
+        const currentState = webRTCService.getConnectionState();
+        if (currentState !== 'connected' && currentState !== 'connecting') {
+            initializeConnection();
+        } else {
+            console.log('📱 Already connected, checking for existing stream');
+            setConnectionState('connected');
+            const stream = webRTCService.getRemoteStream();
+            if (stream) {
+                setRemoteStream(stream);
+                checkStreamResolution(stream);
+            }
+        }
 
         // Initial setup with screen dimensions
         inputService.setSessionId(sessionId);
@@ -134,6 +151,14 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             setIsRemoteControlEnabled(false);
         });
 
+        // Listen for session manager events too
+        sessionManager.onEvent('screenShareStopped', () => {
+            if (!cleanupRef.current) {
+                Alert.alert('Screen Share Stopped', 'The host has stopped sharing.');
+                navigation.goBack();
+            }
+        });
+
         return () => {
             cleanupRef.current = true;
             if (controlsTimeoutRef.current) {
@@ -142,11 +167,82 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
             if (resolutionIntervalRef.current) {
                 clearInterval(resolutionIntervalRef.current);
             }
-            webRTCService.close();
+            // WEB RTC KEEP ALIVE - Do not close connection here to support persistence
+            // webRTCService.close(); 
         };
     }, []);
 
-    const resolutionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Monitor stream resolution changes
+    useEffect(() => {
+        if (remoteStream) {
+            // Check immediately
+            checkStreamResolution(remoteStream);
+
+            // And check periodically in case it changes or wasn't ready
+            resolutionIntervalRef.current = setInterval(() => {
+                checkStreamResolution(remoteStream);
+            }, 2000);
+        }
+
+        return () => {
+            if (resolutionIntervalRef.current) {
+                clearInterval(resolutionIntervalRef.current);
+            }
+        };
+    }, [remoteStream]);
+
+    const setupRemoteStreamListener = () => {
+        webRTCService.onRemoteStream((stream) => {
+            console.log('📱 Got remote stream!');
+            setRemoteStream(stream);
+            // NOTE: Don't auto-enable remote control here
+            // Wait for server to signal when host enables it
+            console.log('📱 Stream received, waiting for host to enable control');
+        });
+
+        webRTCService.onConnectionStateChange((state) => {
+            console.log('📱 Connection state:', state);
+            setConnectionState(state);
+
+            if (state === 'failed') {
+                if (!cleanupRef.current) {
+                    Alert.alert('Connection Failed', 'Failed to connect to the host.', [
+                        { text: 'OK', onPress: () => navigation.goBack() },
+                    ]);
+                }
+            } else if (state === 'disconnected') {
+                if (!cleanupRef.current) {
+                    Alert.alert('Disconnected', 'Lost connection to the host.', [
+                        { text: 'OK', onPress: () => navigation.goBack() },
+                    ]);
+                }
+            }
+        });
+
+        webRTCService.onDataChannelOpen(() => {
+            console.log('📱 Data channel ready for input!');
+            // Configure input service when data channel opens
+            inputService.setViewSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+            inputService.setSessionId(sessionId);
+
+            // AUTO-REQUEST remote control when data channel is ready
+            // This tells the host we want to control their desktop
+            console.log('📱 Auto-requesting remote control from host...');
+            socketService.enableRemoteControl(sessionId);
+        });
+    };
+
+    const initializeConnection = async () => {
+        try {
+            // Initialize WebRTC (this will trigger signaling and potentially ontrack)
+            await webRTCService.initialize('viewer', sessionId);
+        } catch (error) {
+            console.error('❌ Connection error:', error);
+            Alert.alert('Connection Error', 'Failed to connect to remote session.', [
+                { text: 'OK', onPress: () => navigation.goBack() },
+            ]);
+        }
+    };
 
     // Function to check and update stream resolution
     const checkStreamResolution = (stream: MediaStream) => {
@@ -172,25 +268,6 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         }
     };
 
-    // Monitor stream resolution changes
-    useEffect(() => {
-        if (remoteStream) {
-            // Check immediately
-            checkStreamResolution(remoteStream);
-
-            // And check periodically in case it changes or wasn't ready
-            resolutionIntervalRef.current = setInterval(() => {
-                checkStreamResolution(remoteStream);
-            }, 2000);
-        }
-
-        return () => {
-            if (resolutionIntervalRef.current) {
-                clearInterval(resolutionIntervalRef.current);
-            }
-        };
-    }, [remoteStream]);
-
     const startControlsTimeout = () => {
         if (controlsTimeoutRef.current) {
             clearTimeout(controlsTimeoutRef.current);
@@ -198,63 +275,6 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         controlsTimeoutRef.current = setTimeout(() => {
             setShowControls(false);
         }, 5000);
-    };
-
-    const initializeConnection = async () => {
-        try {
-            // IMPORTANT: Set up callbacks BEFORE initialization
-            // This ensures they're in place when ontrack fires during signaling
-            webRTCService.onRemoteStream((stream) => {
-                console.log('📱 Got remote stream!');
-                setRemoteStream(stream);
-                // NOTE: Don't auto-enable remote control here
-                // Wait for server to signal when host enables it
-                console.log('📱 Stream received, waiting for host to enable control');
-            });
-
-            webRTCService.onConnectionStateChange((state) => {
-                console.log('📱 Connection state:', state);
-                setConnectionState(state);
-
-                if (state === 'failed') {
-                    if (!cleanupRef.current) {
-                        Alert.alert('Connection Failed', 'Failed to connect to the host.', [
-                            { text: 'OK', onPress: () => navigation.goBack() },
-                        ]);
-                    }
-                } else if (state === 'disconnected') {
-                    if (!cleanupRef.current) {
-                        Alert.alert('Disconnected', 'Lost connection to the host.', [
-                            { text: 'OK', onPress: () => navigation.goBack() },
-                        ]);
-                    }
-                }
-            });
-
-            // Enable data channel for low-latency input
-            webRTCService.onDataChannelOpen(() => {
-                console.log('📱 Data channel ready for input!');
-                console.log('📱 View dimensions:', SCREEN_WIDTH, 'x', SCREEN_HEIGHT);
-                console.log('📱 Session ID:', sessionId);
-                // Configure input service when data channel opens
-                inputService.setViewSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-                inputService.setSessionId(sessionId);
-
-                // AUTO-REQUEST remote control when data channel is ready
-                // This tells the host we want to control their desktop
-                console.log('📱 Auto-requesting remote control from host...');
-                socketService.enableRemoteControl(sessionId);
-            });
-
-            // NOW initialize WebRTC (this will trigger signaling and potentially ontrack)
-            await webRTCService.initialize('viewer', sessionId);
-
-        } catch (error) {
-            console.error('❌ Connection error:', error);
-            Alert.alert('Connection Error', 'Failed to connect to remote session.', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-            ]);
-        }
     };
 
     // Helper to convert screen coordinates to video-relative coordinates
@@ -359,17 +379,31 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         }
     };
 
+    // Go back without ending session - just stop viewing
+    const handleGoBack = () => {
+        // webRTCService.close(); // Don't close connection here
+        navigation.goBack();
+    };
+
+    // Fully disconnect from the session
     const handleDisconnect = () => {
         Alert.alert(
-            'Disconnect',
-            'Are you sure you want to disconnect from this session?',
+            'Leave Session',
+            'Do you want to stop viewing or completely leave the session?',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Disconnect',
+                    text: 'Stop Viewing',
+                    onPress: () => {
+                        // webRTCService.close(); // Don't close connection here
+                        navigation.goBack();
+                    },
+                },
+                {
+                    text: 'Leave Session',
                     style: 'destructive',
                     onPress: () => {
-                        webRTCService.close();
+                        sessionManager.endSession();
                         navigation.goBack();
                     },
                 },
@@ -506,8 +540,6 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
                     <Text style={styles.floatingControlLabel}>{showControls ? 'Hide' : 'Menu'}</Text>
                 </TouchableOpacity>
             )}
-
-            {/* Removed blocking controlsToggle overlay - gestures now work directly on RTCView */}
         </GestureHandlerRootView>
     );
 };
@@ -603,21 +635,10 @@ const styles = StyleSheet.create({
         minWidth: 60,
         alignItems: 'center',
     },
-    controlButtonActive: {
-        backgroundColor: 'rgba(34, 197, 94, 0.3)',
-        borderColor: '#22c55e',
-    },
     controlButtonText: {
         color: '#fff',
         fontSize: 14,
         fontWeight: '600',
-    },
-    controlsToggle: {
-        position: 'absolute',
-        top: 100,
-        left: 0,
-        right: 0,
-        bottom: 100,
     },
     floatingControlButton: {
         position: 'absolute',

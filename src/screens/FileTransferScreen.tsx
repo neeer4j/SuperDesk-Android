@@ -1,4 +1,5 @@
 // File Transfer Screen - Send and receive files via WebRTC
+// Updated: Shows session status, has notification badge for incoming files
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -11,10 +12,12 @@ import {
     ActivityIndicator,
     PermissionsAndroid,
     Platform,
+    Modal,
 } from 'react-native';
-import { pick, types, DocumentPickerResponse } from '@react-native-documents/picker';
+import { pick, types } from '@react-native-documents/picker';
 import { SettingsIcon, FileTransferIcon } from '../components/Icons';
 import { fileTransferService, TransferProgress, FileToSend } from '../services/FileTransferService';
+import { sessionManager, SessionState } from '../services/SessionManager';
 
 interface FileTransferScreenProps {
     navigation: any;
@@ -22,23 +25,61 @@ interface FileTransferScreenProps {
 
 const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) => {
     const [transfers, setTransfers] = useState<TransferProgress[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
+    const [isChannelReady, setIsChannelReady] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [showIncomingModal, setShowIncomingModal] = useState(false);
+
+    // Session info from SessionManager
+    const [sessionState, setSessionState] = useState<SessionState>({
+        isActive: false,
+        role: null,
+        sessionId: null,
+        peerId: null,
+        isScreenSharing: false,
+        isWebRTCConnected: false,
+    });
+
+    // Count of incoming (receiving) transfers that are pending or in progress
+    const [incomingCount, setIncomingCount] = useState(0);
 
     useEffect(() => {
-        // Check connection status
-        setIsConnected(fileTransferService.isReady());
+        // Initialize state from SessionManager
+        const state = sessionManager.getState();
+        setSessionState(state);
+
+        // Check if file transfer data channel is ready
+        setIsChannelReady(fileTransferService.isReady());
+
+        // Subscribe to session state changes
+        const unsubscribe = sessionManager.subscribe((newState: SessionState) => {
+            setSessionState(newState);
+            if (!newState.isActive) {
+                setIsChannelReady(false);
+                setIncomingCount(0);
+                setTransfers([]);
+            }
+        });
 
         // Listen for transfer progress updates
         fileTransferService.onProgress((progress) => {
             setTransfers(prevTransfers => {
                 const existing = prevTransfers.findIndex(t => t.id === progress.id);
+                let updated: TransferProgress[];
                 if (existing >= 0) {
-                    const updated = [...prevTransfers];
+                    updated = [...prevTransfers];
                     updated[existing] = progress;
-                    return updated;
+                } else {
+                    updated = [progress, ...prevTransfers];
                 }
-                return [progress, ...prevTransfers];
+
+                // Update incoming count
+                const incoming = updated.filter(
+                    t => t.direction === 'receive' &&
+                        (t.status === 'pending' || t.status === 'transferring')
+                ).length;
+                setIncomingCount(incoming);
+
+                return updated;
             });
         });
 
@@ -52,12 +93,24 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
             Alert.alert('Transfer Error', error);
         });
 
-        // Periodic connection check
+        // Periodic check for data channel readiness
+        const sessionEndListener = () => {
+            console.log('📱 Session ended detected in FileTransferScreen');
+            setIsChannelReady(false);
+            setIncomingCount(0);
+            setTransfers([]);
+        };
+        sessionManager.on('sessionEnded', sessionEndListener);
+
         const interval = setInterval(() => {
-            setIsConnected(fileTransferService.isReady());
+            setIsChannelReady(fileTransferService.isReady());
         }, 2000);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            unsubscribe();
+            sessionManager.off('sessionEnded', sessionEndListener);
+        };
     }, []);
 
     const requestStoragePermission = async (): Promise<boolean> => {
@@ -82,12 +135,20 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
     };
 
     const handleSendFile = async () => {
-        if (!isConnected) {
-            Alert.alert(
-                'Not Connected',
-                'Please start or join a session first to send files.',
-                [{ text: 'OK' }]
-            );
+        if (!isChannelReady) {
+            if (!sessionState.isActive) {
+                Alert.alert(
+                    'No Session',
+                    'Please go to Host or Join tab to start a session first.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Not Ready',
+                    'The data connection is not ready yet. Please make sure you are viewing/sharing the screen to establish the connection.',
+                    [{ text: 'OK' }]
+                );
+            }
             return;
         }
 
@@ -100,46 +161,73 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
             const file = result[0];
             if (!file) return;
 
-            setIsSending(true);
+            // Confirm before sending
+            Alert.alert(
+                'Confirm Send',
+                `Do you want to send "${file.name}"?`,
+                [
+                    {
+                        text: 'Cancel',
+                        style: 'cancel',
+                    },
+                    {
+                        text: 'Send',
+                        onPress: async () => {
+                            try {
+                                setIsSending(true);
 
-            const fileToSend: FileToSend = {
-                uri: file.uri,
-                name: file.name || 'unknown',
-                size: file.size || 0,
-                type: file.type || 'application/octet-stream',
-            };
+                                const fileToSend: FileToSend = {
+                                    uri: file.uri,
+                                    name: file.name || 'unknown',
+                                    size: file.size || 0,
+                                    type: file.type || 'application/octet-stream',
+                                };
 
-            await fileTransferService.sendFile(fileToSend);
+                                await fileTransferService.sendFile(fileToSend);
+                            } catch (err: any) {
+                                console.error('Send failed:', err);
+                                Alert.alert('Error', err.message || 'Failed to send file');
+                            } finally {
+                                setIsSending(false);
+                            }
+                        },
+                    },
+                ]
+            );
 
         } catch (error: any) {
             if (error?.code !== 'DOCUMENT_PICKER_CANCELED') {
-                Alert.alert('Error', error.message || 'Failed to send file');
+                Alert.alert('Error', error.message || 'Failed to pick file');
             }
-        } finally {
-            setIsSending(false);
         }
+        // NOTE: finally block moved inside onPress for sending, or omitted here as picker doesn't set isSending
     };
 
     const handleReceiveFiles = async () => {
-        if (!isConnected) {
-            Alert.alert(
-                'Not Connected',
-                'Please start or join a session first to receive files.',
-                [{ text: 'OK' }]
-            );
-            return;
-        }
-
         const hasPermission = await requestStoragePermission();
         if (!hasPermission) {
             Alert.alert('Permission Required', 'Storage permission is needed to save files.');
             return;
         }
 
+        // Show the incoming files modal
+        setShowIncomingModal(true);
+        // Mark as read
+        setIncomingCount(0);
+    };
+
+    const handleEndSession = () => {
         Alert.alert(
-            'Ready to Receive',
-            'Files sent from the connected PC will be saved to your Downloads folder.',
-            [{ text: 'OK' }]
+            'End Session',
+            'Are you sure you want to end the session?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'End Session',
+                    style: 'destructive',
+                    onPress: () => sessionManager.endSession(),
+                },
+            ]
         );
     };
 
@@ -149,9 +237,12 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    const formatTime = (timestamp: string): string => {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatCode = (code: string | null): string => {
+        if (!code) return '';
+        if (code.length >= 8) {
+            return code.slice(0, 4) + '-' + code.slice(4, 8);
+        }
+        return code;
     };
 
     const getStatusIcon = (status: string): string => {
@@ -163,6 +254,9 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
             default: return '...';
         }
     };
+
+    // Filter incoming transfers for the modal
+    const incomingTransfers = transfers.filter(t => t.direction === 'receive');
 
     const renderTransferItem = ({ item }: { item: TransferProgress }) => (
         <View style={styles.transferItem}>
@@ -206,6 +300,19 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
         </View>
     );
 
+    // Determine connection state for UI
+    const getConnectionState = () => {
+        if (isChannelReady) {
+            return { color: '#22c55e', text: 'Ready to transfer' };
+        } else if (sessionState.isActive) {
+            return { color: '#f59e0b', text: 'Session active • View/Share to connect' };
+        } else {
+            return { color: '#666', text: 'No session' };
+        }
+    };
+
+    const connectionInfo = getConnectionState();
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
@@ -216,13 +323,8 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                     <Text style={styles.logo}>File Transfer</Text>
                 </View>
                 <View style={styles.connectionStatus}>
-                    <View style={[
-                        styles.connectionDot,
-                        { backgroundColor: isConnected ? '#22c55e' : '#666' }
-                    ]} />
-                    <Text style={styles.connectionText}>
-                        {isConnected ? 'Connected' : 'Not connected'}
-                    </Text>
+                    <View style={[styles.connectionDot, { backgroundColor: connectionInfo.color }]} />
+                    <Text style={styles.connectionText}>{connectionInfo.text}</Text>
                 </View>
                 <TouchableOpacity
                     style={styles.settingsButton}
@@ -232,12 +334,29 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                 </TouchableOpacity>
             </View>
 
+            {/* Active Session Info - Compact */}
+            {sessionState.isActive && (
+                <View style={styles.sessionBar}>
+                    <View style={styles.sessionInfo}>
+                        <Text style={styles.sessionLabel}>
+                            {sessionState.role === 'host' ? '📱 Hosting' : '👁️ Joined'}: {formatCode(sessionState.sessionId)}
+                        </Text>
+                        {sessionState.peerId && (
+                            <Text style={styles.peerLabel}>• Peer connected</Text>
+                        )}
+                    </View>
+                    <TouchableOpacity style={styles.endButton} onPress={handleEndSession}>
+                        <Text style={styles.endButtonText}>End</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
             {/* Action Buttons */}
             <View style={styles.actionsContainer}>
                 <TouchableOpacity
                     style={[
                         styles.actionButton,
-                        !isConnected && styles.actionButtonNotConnected,
+                        !isChannelReady && styles.actionButtonNotConnected,
                         isSending && styles.actionButtonDisabled
                     ]}
                     onPress={handleSendFile}
@@ -245,57 +364,65 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                 >
                     <View style={[
                         styles.actionIcon,
-                        !isConnected && styles.actionIconNotConnected
+                        !isChannelReady && styles.actionIconNotConnected
                     ]}>
                         {isSending ? (
                             <ActivityIndicator size="small" color="#8b5cf6" />
                         ) : (
-                            <Text style={[styles.actionEmoji, !isConnected && styles.actionEmojiDimmed]}>📤</Text>
+                            <Text style={[styles.actionEmoji, !isChannelReady && styles.actionEmojiDimmed]}>📤</Text>
                         )}
                     </View>
-                    <Text style={[styles.actionText, !isConnected && styles.actionTextDimmed]}>
+                    <Text style={[styles.actionText, !isChannelReady && styles.actionTextDimmed]}>
                         {isSending ? 'Sending...' : 'Send File'}
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[
-                        styles.actionButton,
-                        !isConnected && styles.actionButtonNotConnected
-                    ]}
+                    style={styles.actionButton}
                     onPress={handleReceiveFiles}
                 >
-                    <View style={[
-                        styles.actionIcon,
-                        !isConnected && styles.actionIconNotConnected
-                    ]}>
-                        <Text style={[styles.actionEmoji, !isConnected && styles.actionEmojiDimmed]}>📥</Text>
+                    <View style={styles.actionIcon}>
+                        <Text style={styles.actionEmoji}>📥</Text>
+                        {/* Notification Badge */}
+                        {incomingCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{incomingCount}</Text>
+                            </View>
+                        )}
                     </View>
-                    <Text style={[styles.actionText, !isConnected && styles.actionTextDimmed]}>Receive Files</Text>
+                    <Text style={styles.actionText}>Incoming Files</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Instructions Section */}
-            <View style={styles.instructionsContainer}>
-                <Text style={styles.instructionsTitle}>How to Transfer Files</Text>
-                <View style={styles.instructionStep}>
-                    <Text style={styles.stepNumber}>1</Text>
-                    <Text style={styles.stepText}>Go to <Text style={styles.stepHighlight}>Host</Text> or <Text style={styles.stepHighlight}>Join</Text> tab</Text>
-                </View>
-                <View style={styles.instructionStep}>
-                    <Text style={styles.stepNumber}>2</Text>
-                    <Text style={styles.stepText}>Start or join a session with your PC</Text>
-                </View>
-                <View style={styles.instructionStep}>
-                    <Text style={styles.stepNumber}>3</Text>
-                    <Text style={styles.stepText}>Return here to send/receive files</Text>
-                </View>
-                {isConnected && (
-                    <View style={styles.connectedBadge}>
-                        <Text style={styles.connectedBadgeText}>✓ Ready to transfer files</Text>
+            {/* Instructions Section - Only show when not connected */}
+            {!sessionState.isActive && (
+                <View style={styles.instructionsContainer}>
+                    <Text style={styles.instructionsTitle}>How to Transfer Files</Text>
+                    <View style={styles.instructionStep}>
+                        <Text style={styles.stepNumber}>1</Text>
+                        <Text style={styles.stepText}>Go to <Text style={styles.stepHighlight}>Host</Text> or <Text style={styles.stepHighlight}>Join</Text> tab</Text>
                     </View>
-                )}
-            </View>
+                    <View style={styles.instructionStep}>
+                        <Text style={styles.stepNumber}>2</Text>
+                        <Text style={styles.stepText}>Start or join a session with another device</Text>
+                    </View>
+                    <View style={styles.instructionStep}>
+                        <Text style={styles.stepNumber}>3</Text>
+                        <Text style={styles.stepText}>Start screen sharing to establish connection</Text>
+                    </View>
+                    <View style={styles.instructionStep}>
+                        <Text style={styles.stepNumber}>4</Text>
+                        <Text style={styles.stepText}>Return here to send/receive files</Text>
+                    </View>
+                </View>
+            )}
+
+            {/* Ready indicator */}
+            {isChannelReady && (
+                <View style={styles.readyBadge}>
+                    <Text style={styles.readyBadgeText}>✓ Connection ready • Send or receive files now</Text>
+                </View>
+            )}
 
             {/* Transfer History */}
             <View style={styles.historyContainer}>
@@ -318,6 +445,49 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                     />
                 )}
             </View>
+
+            {/* Incoming Files Modal */}
+            <Modal
+                visible={showIncomingModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowIncomingModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>📥 Incoming Files</Text>
+                            <TouchableOpacity onPress={() => setShowIncomingModal(false)}>
+                                <Text style={styles.modalClose}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {incomingTransfers.length === 0 ? (
+                            <View style={styles.modalEmpty}>
+                                <Text style={styles.modalEmptyText}>No incoming files</Text>
+                                <Text style={styles.modalEmptySubtext}>
+                                    Files sent to you will appear here automatically.
+                                    You don't need to accept them - they save directly to Downloads.
+                                </Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={incomingTransfers}
+                                renderItem={renderTransferItem}
+                                keyExtractor={(item) => item.id}
+                                style={styles.modalList}
+                            />
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setShowIncomingModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -333,7 +503,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginTop: 10,
-        marginBottom: 20,
+        marginBottom: 16,
     },
     headerLeft: {
         flex: 1,
@@ -347,6 +517,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginRight: 16,
+        maxWidth: 150,
     },
     connectionDot: {
         width: 8,
@@ -356,10 +527,50 @@ const styles = StyleSheet.create({
     },
     connectionText: {
         color: '#888',
-        fontSize: 12,
+        fontSize: 11,
+        flexShrink: 1,
     },
     settingsButton: {
         padding: 8,
+    },
+    sessionBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#16161e',
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#22c55e40',
+    },
+    sessionInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    sessionLabel: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    peerLabel: {
+        color: '#22c55e',
+        fontSize: 12,
+        marginLeft: 8,
+    },
+    endButton: {
+        backgroundColor: '#ef444420',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#ef4444',
+    },
+    endButtonText: {
+        color: '#ef4444',
+        fontSize: 12,
+        fontWeight: '600',
     },
     actionsContainer: {
         flexDirection: 'row',
@@ -391,6 +602,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 12,
+        position: 'relative',
     },
     actionIconNotConnected: {
         backgroundColor: '#141418',
@@ -408,6 +620,23 @@ const styles = StyleSheet.create({
     },
     actionTextDimmed: {
         color: '#555',
+    },
+    badge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#ef4444',
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 6,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: 'bold',
     },
     instructionsContainer: {
         backgroundColor: '#16161e',
@@ -451,32 +680,18 @@ const styles = StyleSheet.create({
         color: '#8b5cf6',
         fontWeight: '600',
     },
-    connectedBadge: {
-        marginTop: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+    readyBadge: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
         backgroundColor: '#22c55e20',
         borderRadius: 8,
-        alignSelf: 'flex-start',
-    },
-    connectedBadgeText: {
-        color: '#22c55e',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    hintContainer: {
-        backgroundColor: '#1e1e2e',
-        borderRadius: 12,
-        padding: 16,
+        alignSelf: 'center',
         marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#8b5cf633',
     },
-    hintText: {
-        color: '#888',
-        fontSize: 13,
-        textAlign: 'center',
-        lineHeight: 20,
+    readyBadgeText: {
+        color: '#22c55e',
+        fontSize: 14,
+        fontWeight: '600',
     },
     historyContainer: {
         flex: 1,
@@ -572,6 +787,69 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: 12,
         color: '#fff',
+    },
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#16161e',
+        borderRadius: 16,
+        padding: 20,
+        width: '100%',
+        maxHeight: '80%',
+        borderWidth: 1,
+        borderColor: '#2a2a3a',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#fff',
+    },
+    modalClose: {
+        fontSize: 24,
+        color: '#888',
+        padding: 4,
+    },
+    modalEmpty: {
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    modalEmptyText: {
+        fontSize: 16,
+        color: '#888',
+        marginBottom: 8,
+    },
+    modalEmptySubtext: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    modalList: {
+        maxHeight: 300,
+    },
+    modalButton: {
+        backgroundColor: '#8b5cf6',
+        borderRadius: 12,
+        padding: 14,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    modalButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 
