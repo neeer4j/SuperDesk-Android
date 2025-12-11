@@ -8,41 +8,42 @@ interface RTCDataChannel {
     readyState: 'connecting' | 'open' | 'closing' | 'closed';
     onopen: (() => void) | null;
     onclose: (() => void) | null;
-    onmessage: ((event: { data: string }) => void) | null;
+    onmessage: ((event: { data: string | ArrayBuffer }) => void) | null;
     onerror: ((event: any) => void) | null;
-    send: (data: string) => void;
+    send: (data: string | ArrayBuffer | ArrayBufferView) => void;
     close: () => void;
+    binaryType?: string;
 }
 
 // Chunk size for file transfers (16KB - optimal for WebRTC data channels)
 const CHUNK_SIZE = 16 * 1024;
 
-// Message types for file transfer protocol
-export type FileTransferMessageType = 'file-start' | 'file-chunk' | 'file-end' | 'file-cancel' | 'file-ack';
+// Message types for file transfer protocol (Electron Compatible)
+export type FileTransferMessageType =
+    | 'file-offer'
+    | 'file-accept'
+    | 'file-reject'
+    | 'file-chunk'
+    | 'file-eof'
+    | 'file-cancel'
+    | 'toggle-enabled';
 
 export interface FileTransferMessage {
     type: FileTransferMessageType;
-    id: string;
     name?: string;
     size?: number;
     mimeType?: string;
-    index?: number;
-    total?: number;
-    data?: string; // base64 encoded chunk
-
-    // Compatibility fields
-    fileName?: string;
-    fileSize?: number;
-    fileType?: string;
+    totalBytes?: number;
+    enabled?: boolean;
 }
 
 export interface TransferProgress {
-    id: string;
+    id: string; // usually filename for simple implementation or generated
     name: string;
     size: number;
     transferred: number;
     progress: number; // 0-100
-    status: 'pending' | 'transferring' | 'completed' | 'failed' | 'cancelled';
+    status: 'pending' | 'transferring' | 'completed' | 'failed' | 'cancelled' | 'waiting-for-accept';
     direction: 'send' | 'receive';
     error?: string;
 }
@@ -61,9 +62,22 @@ type ErrorCallback = (error: string, transferId: string) => void;
 
 class FileTransferService {
     private dataChannel: RTCDataChannel | null = null;
+
+    // Check active transfers
+    // Note: Electron simple implementation might only handle one at a time effectively, 
+    // but we'll keep the map structure for robustness.
     private activeTransfers: Map<string, TransferProgress> = new Map();
-    private pendingChunks: Map<string, string[]> = new Map();
-    private pendingMeta: Map<string, { name: string; size: number; mimeType: string }> = new Map();
+
+    // For receiving
+    private receivedChunks: Uint8Array[] = [];
+    private bytesReceived = 0;
+    private expectedFileSize = 0;
+    private expectedFileName = '';
+    private receivingInProgress = false;
+
+    // For sending (waiting for accept)
+    private pendingSendFile: FileToSend | null = null;
+    private pendingSendId: string | null = null;
 
     // Callbacks
     private onProgressCallback?: ProgressCallback;
@@ -73,16 +87,25 @@ class FileTransferService {
     // Set the data channel for file transfers
     setDataChannel(channel: RTCDataChannel) {
         this.dataChannel = channel;
+        // CRITICAL: Set binary type for ArrayBuffer transfer
+        this.dataChannel.binaryType = 'arraybuffer';
         this.setupChannelHandlers();
     }
 
     private setupChannelHandlers() {
         if (!this.dataChannel) return;
 
-        this.dataChannel.onmessage = async (event: { data: string }) => {
+        this.dataChannel.onmessage = async (event: { data: string | ArrayBuffer }) => {
             try {
-                const message: FileTransferMessage = JSON.parse(event.data);
-                await this.handleMessage(message);
+                const data = event.data;
+                if (typeof data === 'string') {
+                    // JSON Control Message
+                    const message: FileTransferMessage = JSON.parse(data);
+                    await this.handleMessage(message);
+                } else if (data instanceof ArrayBuffer) {
+                    // Binary Chunk
+                    await this.handleFileChunk(data);
+                }
             } catch (error) {
                 console.error('❌ Error parsing file transfer message:', error);
             }
@@ -94,35 +117,50 @@ class FileTransferService {
 
         this.dataChannel.onclose = () => {
             console.log('📁 File transfer channel closed');
+            this.activeTransfers.forEach(t => {
+                if (t.status === 'transferring' || t.status === 'pending' || t.status === 'waiting-for-accept') {
+                    t.status = 'failed';
+                    t.error = 'Channel disconnected';
+                    this.onProgressCallback?.(t);
+                }
+            });
+            this.activeTransfers.clear();
         };
     }
 
     private async handleMessage(message: FileTransferMessage) {
         switch (message.type) {
-            case 'file-start':
-                await this.handleFileStart(message);
+            case 'file-offer':
+                await this.handleFileOffer(message);
                 break;
-            case 'file-chunk':
-                await this.handleFileChunk(message);
+            case 'file-accept':
+                await this.handleFileAccept();
                 break;
-            case 'file-end':
-                await this.handleFileEnd(message);
+            case 'file-reject':
+                this.handleFileReject();
+                break;
+            case 'file-eof':
+                await this.handleFileEOF(message);
                 break;
             case 'file-cancel':
-                this.handleFileCancel(message);
+                this.handleFileCancel();
                 break;
         }
     }
 
-    private async handleFileStart(message: FileTransferMessage) {
-        const { id, name, size, mimeType } = message;
-        if (!id || !name || !size) return;
+    // ================= HANDLING RECEIVING (ANDROID RECEIVER) =================
+    // Note: Focus is on SENDING to Electron, but we maintain receiving capability
 
-        console.log(`📁 Receiving file: ${name} (${this.formatSize(size)})`);
+    private async handleFileOffer(message: FileTransferMessage) {
+        const { name, size, mimeType } = message;
+        if (!name || !size) return;
 
-        // Store metadata
-        this.pendingMeta.set(id, { name, size, mimeType: mimeType || 'application/octet-stream' });
-        this.pendingChunks.set(id, []);
+        console.log(`📁 Receiving file offer: ${name} (${this.formatSize(size)})`);
+
+        // For now, AUTO ACCEPT to simplify (matches current Android logic)
+        // In future we can add UI dialog to accept/reject
+
+        const id = name; // Use name as ID for simplicity in this flow via Electron protocol
 
         // Track progress
         const progress: TransferProgress = {
@@ -137,193 +175,259 @@ class FileTransferService {
         this.activeTransfers.set(id, progress);
         this.onProgressCallback?.(progress);
 
-        // Send acknowledgment
-        this.sendMessage({ type: 'file-ack', id });
+        // Reset receiving state
+        this.receivedChunks = [];
+        this.bytesReceived = 0;
+        this.expectedFileSize = size;
+        this.expectedFileName = name;
+        this.receivingInProgress = true;
+
+        // Send ACCEPT
+        this.sendMessage({ type: 'file-accept' });
     }
 
-    private async handleFileChunk(message: FileTransferMessage) {
-        const { id, data, index, total } = message;
-        if (!id || !data) return;
+    private async handleFileChunk(data: ArrayBuffer) {
+        if (!this.receivingInProgress) return;
 
-        const chunks = this.pendingChunks.get(id);
-        const meta = this.pendingMeta.get(id);
-        if (!chunks || !meta) return;
+        const chunk = new Uint8Array(data);
+        this.receivedChunks.push(chunk);
+        this.bytesReceived += chunk.byteLength;
 
-        // Store chunk
-        chunks.push(data);
-
-        // Update progress
+        const id = this.expectedFileName;
         const transfer = this.activeTransfers.get(id);
+
         if (transfer) {
-            const chunkSize = Math.ceil(data.length * 0.75); // base64 to bytes approximation
-            transfer.transferred += chunkSize;
-            transfer.progress = Math.min(100, Math.round((transfer.transferred / transfer.size) * 100));
+            transfer.transferred = this.bytesReceived;
+            transfer.progress = Math.min(100, Math.round((this.bytesReceived / this.expectedFileSize) * 100));
             this.onProgressCallback?.(transfer);
         }
     }
 
-    private async handleFileEnd(message: FileTransferMessage) {
-        const { id } = message;
-        if (!id) return;
+    private async handleFileEOF(message: FileTransferMessage) {
+        if (!this.receivingInProgress) return;
 
-        const chunks = this.pendingChunks.get(id);
-        const meta = this.pendingMeta.get(id);
-        if (!chunks || !meta) return;
+        console.log('📁 File transfer complete (EOF)');
+        const id = this.expectedFileName;
+        const transfer = this.activeTransfers.get(id);
 
         try {
-            // Combine all chunks
-            const fullData = chunks.join('');
+            // Combine chunks
+            const totalLength = this.receivedChunks.reduce((acc, c) => acc + c.length, 0);
+            const combined = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const c of this.receivedChunks) {
+                combined.set(c, offset);
+                offset += c.length;
+            }
 
-            // Save to Downloads folder
+            // Save to Downloads
+            // Note: writing binary from Uint8Array requires encoding to base64 for RNFS usually, 
+            // or using specific binary write methods.
+            const fullBase64 = this.uint8ArrayToBase64(combined);
+
             const downloadsPath = Platform.OS === 'android'
                 ? RNFS.DownloadDirectoryPath
                 : RNFS.DocumentDirectoryPath;
 
-            const filePath = `${downloadsPath}/${meta.name}`;
+            const filePath = `${downloadsPath}/${this.expectedFileName}`;
 
-            // Write base64 data to file
-            await RNFS.writeFile(filePath, fullData, 'base64');
-
+            await RNFS.writeFile(filePath, fullBase64, 'base64');
             console.log(`✅ File saved: ${filePath}`);
 
-            // Update progress
-            const transfer = this.activeTransfers.get(id);
             if (transfer) {
                 transfer.status = 'completed';
                 transfer.progress = 100;
                 this.onProgressCallback?.(transfer);
             }
 
-            // Notify callback
-            this.onFileReceivedCallback?.(filePath, meta.name);
-
-            // Cleanup
-            this.pendingChunks.delete(id);
-            this.pendingMeta.delete(id);
+            this.onFileReceivedCallback?.(filePath, this.expectedFileName);
 
         } catch (error: any) {
             console.error('❌ Error saving file:', error);
-            const transfer = this.activeTransfers.get(id);
             if (transfer) {
                 transfer.status = 'failed';
                 transfer.error = error.message;
                 this.onProgressCallback?.(transfer);
             }
-            this.onErrorCallback?.(error.message, id);
+        } finally {
+            // Cleanup
+            this.receivingInProgress = false;
+            this.receivedChunks = [];
+            this.bytesReceived = 0;
         }
     }
 
-    private handleFileCancel(message: FileTransferMessage) {
-        const { id } = message;
-        if (!id) return;
-
-        const transfer = this.activeTransfers.get(id);
-        if (transfer) {
-            transfer.status = 'cancelled';
-            this.onProgressCallback?.(transfer);
+    private uint8ArrayToBase64(bytes: Uint8Array): string {
+        let binary = '';
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
         }
-
-        this.pendingChunks.delete(id);
-        this.pendingMeta.delete(id);
+        return btoa(binary);
     }
 
-    // Send a file
+    // ================= HANDLING SENDING (ANDROID SENDER) =================
+
+    // Step 1: User calls sendFile -> Sends Offer
     async sendFile(file: FileToSend): Promise<string> {
         if (!this.dataChannel || this.dataChannel.readyState !== 'open') {
             throw new Error('Data channel not open');
         }
 
-        const transferId = this.generateId();
-        const { uri, name, size, type } = file;
+        const transferId = file.name;
+        this.pendingSendFile = file;
+        this.pendingSendId = transferId;
 
-        console.log(`📤 Sending file: ${name} (${this.formatSize(size)})`);
+        console.log(`📤 Sending file OFFER: ${file.name} (${this.formatSize(file.size)})`);
 
-        // Track progress
         const progress: TransferProgress = {
             id: transferId,
-            name,
-            size,
+            name: file.name,
+            size: file.size,
             transferred: 0,
             progress: 0,
-            status: 'pending',
+            status: 'waiting-for-accept', // New status
             direction: 'send',
         };
         this.activeTransfers.set(transferId, progress);
         this.onProgressCallback?.(progress);
 
         try {
-            // Send start message
             this.sendMessage({
-                type: 'file-start',
-                id: transferId,
-                name,
-                fileName: name, // Compatibility
-                size,
-                fileSize: size, // Compatibility
-                mimeType: type || 'application/octet-stream',
-                fileType: type || 'application/octet-stream', // Compatibility
+                type: 'file-offer',
+                name: file.name,
+                size: file.size,
+                mimeType: file.type || 'application/octet-stream'
             });
-
-            // Read file as base64
-            const fileContent = await RNFS.readFile(uri, 'base64');
-            const totalChunks = Math.ceil(fileContent.length / CHUNK_SIZE);
-
-            progress.status = 'transferring';
-            this.onProgressCallback?.(progress);
-
-            // Send chunks
-            for (let i = 0; i < totalChunks; i++) {
-                const chunk = fileContent.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-
-                this.sendMessage({
-                    type: 'file-chunk',
-                    id: transferId,
-                    index: i,
-                    total: totalChunks,
-                    data: chunk,
-                });
-
-                // Update progress
-                progress.transferred = Math.min(size, (i + 1) * CHUNK_SIZE * 0.75);
-                progress.progress = Math.round(((i + 1) / totalChunks) * 100);
-                this.onProgressCallback?.(progress);
-
-                // Small delay to prevent overwhelming the channel
-                if (i % 10 === 0) {
-                    await new Promise<void>(resolve => setTimeout(resolve, 10));
-                }
-            }
-
-            // Send end message
-            this.sendMessage({
-                type: 'file-end',
-                id: transferId,
-            });
-
-            progress.status = 'completed';
-            progress.progress = 100;
-            this.onProgressCallback?.(progress);
-
-            console.log(`✅ File sent: ${name}`);
             return transferId;
-
         } catch (error: any) {
-            console.error('❌ Error sending file:', error);
             progress.status = 'failed';
             progress.error = error.message;
             this.onProgressCallback?.(progress);
-            this.onErrorCallback?.(error.message, transferId);
             throw error;
         }
+    }
+
+    // Step 2: Peer sends 'file-accept' -> Start sending chunks
+    private async handleFileAccept() {
+        if (!this.pendingSendFile || !this.pendingSendId) {
+            console.warn('📁 Received accept but no pending file to send');
+            return;
+        }
+
+        console.log('📁 Peer accepted file, starting transfer...');
+
+        const file = this.pendingSendFile;
+        const id = this.pendingSendId;
+        const transfer = this.activeTransfers.get(id);
+
+        if (transfer) {
+            transfer.status = 'transferring';
+            this.onProgressCallback?.(transfer);
+        }
+
+        try {
+            // Read file as base64 (RNFS reads as base64 by default/option)
+            // We need to convert to byte array to send binary chunks efficiently over wire
+            // This does convert to memory, for very large files stream reading is better 
+            // but Electron implementation loads to memory too.
+            const fileBase64 = await RNFS.readFile(file.uri, 'base64');
+
+            // Convert base64 to Uint8Array
+            const binaryString = atob(fileBase64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            const totalChunks = Math.ceil(len / CHUNK_SIZE);
+            let offset = 0;
+
+            for (let i = 0; i < totalChunks; i++) {
+                // Check if cancelled
+                if (this.activeTransfers.get(id)?.status === 'cancelled') {
+                    console.log('📁 Transfer cancelled during send');
+                    return;
+                }
+
+                const chunk = bytes.slice(offset, offset + CHUNK_SIZE);
+                offset += chunk.length;
+
+                // Send Binary Chunk
+                this.dataChannel!.send(chunk);
+
+                // Update progress
+                if (transfer) {
+                    transfer.transferred = offset;
+                    transfer.progress = Math.round((offset / file.size) * 100);
+                    this.onProgressCallback?.(transfer);
+                }
+
+                // Flow control / Throttling to prevent buffer overflows
+                // Simple delay - optimize if needed
+                if (i % 20 === 0) {
+                    await new Promise(r => setTimeout(r, 10));
+                }
+            }
+
+            // Send EOF
+            this.sendMessage({
+                type: 'file-eof',
+                name: file.name,
+                size: file.size,
+                totalBytes: offset
+            });
+
+            console.log('✅ File transfer complete');
+
+            if (transfer) {
+                transfer.status = 'completed';
+                transfer.progress = 100;
+                this.onProgressCallback?.(transfer);
+            }
+
+        } catch (error: any) {
+            console.error('❌ Error sending chunks:', error);
+            if (transfer) {
+                transfer.status = 'failed';
+                transfer.error = error.message;
+                this.onProgressCallback?.(transfer);
+            }
+            this.onErrorCallback?.(error.message, id);
+        } finally {
+            this.pendingSendFile = null;
+            this.pendingSendId = null;
+        }
+    }
+
+    private handleFileReject() {
+        console.log('📁 File offer rejected');
+        if (this.pendingSendId) {
+            const transfer = this.activeTransfers.get(this.pendingSendId);
+            if (transfer) {
+                transfer.status = 'failed';
+                transfer.error = 'Rejected by peer';
+                this.onProgressCallback?.(transfer);
+            }
+            this.pendingSendFile = null;
+            this.pendingSendId = null;
+        }
+    }
+
+    private handleFileCancel() {
+        console.log('📁 Transfer cancelled by peer');
+        this.receivingInProgress = false;
+        this.receivedChunks = [];
+        // Update UI if needed
     }
 
     // Cancel a transfer
     cancelTransfer(transferId: string) {
         const transfer = this.activeTransfers.get(transferId);
-        if (transfer && transfer.status === 'transferring') {
+        if (transfer && (transfer.status === 'transferring' || transfer.status === 'waiting-for-accept')) {
             this.sendMessage({
-                type: 'file-cancel',
-                id: transferId,
+                type: 'file-cancel'
             });
             transfer.status = 'cancelled';
             this.onProgressCallback?.(transfer);
@@ -334,10 +438,6 @@ class FileTransferService {
         if (this.dataChannel?.readyState === 'open') {
             this.dataChannel.send(JSON.stringify(message));
         }
-    }
-
-    private generateId(): string {
-        return `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
     private formatSize(bytes: number): string {
@@ -364,11 +464,6 @@ class FileTransferService {
         return Array.from(this.activeTransfers.values());
     }
 
-    // Get transfer by ID
-    getTransfer(id: string): TransferProgress | undefined {
-        return this.activeTransfers.get(id);
-    }
-
     // Check if channel is ready
     isReady(): boolean {
         return this.dataChannel?.readyState === 'open';
@@ -377,8 +472,8 @@ class FileTransferService {
     // Cleanup
     cleanup() {
         this.activeTransfers.clear();
-        this.pendingChunks.clear();
-        this.pendingMeta.clear();
+        this.receivedChunks = [];
+        this.pendingSendFile = null;
         this.dataChannel = null;
     }
 }

@@ -156,7 +156,7 @@ class WebRTCService {
         } else {
             (this.peerConnection as any).ondatachannel = (event: RTCDataChannelEvent) => {
                 console.log('📱 Data channel received:', event.channel.label);
-                if (event.channel.label === 'files' || event.channel.label === 'file-transfer') {
+                if (event.channel.label === 'files' || event.channel.label === 'file-transfer' || event.channel.label === 'fileTransfer') {
                     this.fileDataChannel = event.channel;
                     this.setupFileDataChannelHandlers();
                 } else if (event.channel.label === 'input') {
