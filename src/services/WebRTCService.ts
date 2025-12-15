@@ -98,6 +98,18 @@ class WebRTCService {
     private onDataChannelOpenCallback?: () => void;
 
     async initialize(role: ConnectionRole, sessionId?: string): Promise<void> {
+        // Prevent double-initialization for same session
+        if (this.peerConnection && this.sessionId === sessionId) {
+            console.log('📱 WebRTC already initialized for session:', sessionId);
+            return;
+        }
+
+        // Clean up old connection if session changed
+        if (this.peerConnection && this.sessionId !== sessionId) {
+            console.log('📱 Different session, cleaning up old connection');
+            this.close();
+        }
+
         this.role = role;
         this.sessionId = sessionId || null;
         this.isRemoteDescriptionSet = false;
@@ -543,6 +555,47 @@ class WebRTCService {
     // Get connection state
     getConnectionState(): ConnectionState {
         return ((this.peerConnection as any)?.connectionState || 'disconnected') as ConnectionState;
+    }
+
+    // Stop screen share without closing connection (keeps data channel alive for file transfer)
+    stopScreenShare() {
+        console.log('📱 Stopping screen share (keeping data channel alive)');
+        if (this.localStream) {
+            this.localStream.getTracks().forEach((track) => {
+                console.log('📱 Stopping track:', track.kind);
+                track.stop();
+            });
+            this.localStream = null;
+        }
+        // Do NOT close peerConnection or dataChannel - keep them alive for file transfer
+    }
+
+    // Add new screen track to existing connection and renegotiate
+    async addScreenTrack(stream: MediaStream): Promise<void> {
+        if (!this.peerConnection) {
+            throw new Error('No peer connection - call initialize() first');
+        }
+
+        console.log('📱 Adding screen track to existing connection...');
+        this.localStream = stream;
+
+        const tracks = stream.getTracks();
+        console.log('📱 Adding', tracks.length, 'tracks');
+
+        tracks.forEach((track) => {
+            if (!track.enabled) {
+                track.enabled = true;
+            }
+            console.log('📱 Adding track:', track.kind, 'enabled:', track.enabled);
+            this.peerConnection?.addTrack(track, stream);
+        });
+
+        // Configure low-latency encoding
+        this.configureVideoEncoders();
+
+        // Renegotiate to notify peer of new track
+        console.log('📱 Renegotiating with new track...');
+        await this.createOffer();
     }
 
     // Get session ID

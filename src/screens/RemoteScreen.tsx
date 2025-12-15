@@ -152,7 +152,7 @@ const RemoteScreen: React.FC<RemoteScreenProps> = ({ route, navigation }) => {
         });
 
         // Listen for session manager events too
-        sessionManager.onEvent('screenShareStopped', () => {
+        sessionManager.on('screenShareStopped', () => {
             if (!cleanupRef.current) {
                 Alert.alert('Screen Share Stopped', 'The host has stopped sharing.');
                 navigation.goBack();

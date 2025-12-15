@@ -139,17 +139,20 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
         try {
             setStatus('initializing');
 
-            // Initialize WebRTC as host
+            // Initialize WebRTC as host (may return early if already initialized)
             await webRTCService.initialize('host', sessionId);
 
+            // Check if connection is already established (from HostSessionScreen)
+            const currentState = webRTCService.getConnectionState();
+            console.log('📱 Current connection state after init:', currentState);
+
             webRTCService.onConnectionStateChange((state) => {
-                console.log('📱 WebRTC state:', state);
+                console.log('📱 WebRTC state changed:', state);
                 setConnectionState(state);
 
                 if (state === 'connected') {
                     setStatus('connected');
                     sessionManager.setWebRTCConnected(true);
-                    // Start screen sharing once connected
                     startScreenShare();
                 } else if (state === 'failed') {
                     setError('Connection failed. Please try again.');
@@ -167,7 +170,6 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                 try {
                     const event = JSON.parse(message);
                     if (event.type === 'mouse' || event.type === 'keyboard' || event.type === 'touch') {
-                        // Handle remote input via accessibility service
                         remoteControlService.handleRemoteInputEvent(event);
                     }
                 } catch (e) {
@@ -175,7 +177,15 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                 }
             });
 
-            // Now that we're initialized, start screen capture and create offer
+            // If connection is already established, go directly to screen sharing
+            // Otherwise, screen capture will trigger renegotiation which establishes connection
+            if (currentState === 'connected') {
+                console.log('📱 Connection already established, adding screen track for renegotiation');
+                setConnectionState('connected');
+                sessionManager.setWebRTCConnected(true);
+            }
+
+            // Now capture screen and create offer (renegotiation if already connected)
             await requestScreenPermissionAndShare();
 
         } catch (err: any) {
@@ -254,9 +264,9 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
     // Stop screen sharing without ending the session
     const stopScreenShareOnly = () => {
         console.log('📱 Stopping screen share only (session remains active)');
-        webRTCService.close();
+        webRTCService.stopScreenShare(); // Only stops video track, keeps data channel alive
         sessionManager.setScreenSharing(false);
-        sessionManager.setWebRTCConnected(false);
+        // Note: WebRTC connection and data channel remain active for file transfer
     };
 
     // End the entire session

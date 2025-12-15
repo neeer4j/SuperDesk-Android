@@ -19,6 +19,7 @@ import {
 import { SettingsIcon } from '../components/Icons';
 import { sessionManager, SessionState } from '../services/SessionManager';
 import { webRTCService } from '../services/WebRTCService';
+import { socketService } from '../services/SocketService';
 
 interface JoinSessionScreenProps {
     navigation: any;
@@ -33,12 +34,19 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
     const [hostConnected, setHostConnected] = useState(false);
 
     useEffect(() => {
-        // Initialize state from SessionManager
+        // Initialize state from SessionManager - but verify socket is actually connected
         const state = sessionManager.getState();
-        if (state.isActive && state.role === 'guest') {
+        const isSocketConnected = socketService.isConnected();
+
+        // Only show connected state if socket is actually connected
+        if (state.isActive && state.role === 'guest' && isSocketConnected) {
             setSessionCode(state.sessionId || '');
             setStatus('connected');
             setHostConnected(true);
+        } else if (state.isActive && state.role === 'guest' && !isSocketConnected) {
+            // Stale state - socket disconnected but state persisted
+            console.log('📱 Clearing stale session state - socket disconnected');
+            sessionManager.endSession();
         }
 
         // Subscribe to session state changes
@@ -152,8 +160,17 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
 
     const handleViewRemote = () => {
         // Navigate to remote screen to view the host's screen
+        // Get sessionId from sessionManager since local state might be cleared
+        const state = sessionManager.getState();
+        const currentSessionId = state.sessionId || sessionCode;
+
+        if (!currentSessionId) {
+            Alert.alert('Error', 'No session ID available. Please rejoin the session.');
+            return;
+        }
+
         navigation.navigate('Remote', {
-            sessionId: sessionCode,
+            sessionId: currentSessionId,
             role: 'viewer',
         });
     };
