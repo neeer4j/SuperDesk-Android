@@ -82,14 +82,14 @@ class InputService {
         }
     }
 
-    // Handle touch start (mouse move to position)
+    // Handle touch start (mouse down at position)
     onTouchStart(x: number, y: number) {
         const pos = this.normalizeCoordinates(x, y);
         this.lastPosition = pos;
 
         this.sendInput({
             type: 'mouse',
-            action: 'move',
+            action: 'down',
             data: { x: pos.x, y: pos.y },
         });
     }
@@ -106,9 +106,15 @@ class InputService {
         });
     }
 
-    // Handle touch end (complete action)
+    // Handle touch end (mouse up at last position)
     onTouchEnd() {
-        // Touch end doesn't trigger click - tap gesture does
+        const pos = this.lastPosition || { x: 0.5, y: 0.5 };
+
+        this.sendInput({
+            type: 'mouse',
+            action: 'up',
+            data: { x: pos.x, y: pos.y },
+        });
     }
 
     // Handle single tap (left click)

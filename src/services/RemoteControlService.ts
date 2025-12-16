@@ -114,6 +114,16 @@ class RemoteControlService {
     }
 
     /**
+     * Inject text into the focused input field.
+     */
+    async injectText(text: string): Promise<boolean> {
+        if (Platform.OS !== 'android') {
+            return false;
+        }
+        return await RemoteControlModule.injectText(text);
+    }
+
+    /**
      * Handle incoming input event from remote (WebRTC data channel or Socket.IO).
      * This method parses the event and executes the appropriate action.
      */
@@ -168,7 +178,7 @@ class RemoteControlService {
                         return false;
                 }
             } else if (type === 'keyboard') {
-                // Keyboard input handling - limited on Android without InputMethod
+                // Keyboard input handling
                 switch (action) {
                     case 'special':
                         if (data.key === 'Escape' || data.key === 'escape') {
@@ -178,8 +188,23 @@ class RemoteControlService {
                             return await this.performGlobalAction('home');
                         }
                         break;
+
+                    case 'press':
+                    case 'down':
+                        // Inject text for printable characters and specific keys
+                        if (data.key) {
+                            // Single character (letters, numbers, symbols)
+                            if (data.key.length === 1) {
+                                return await this.injectText(data.key);
+                            }
+                            // Special keys handled by injection
+                            if (data.key === 'Backspace' || data.key === 'Enter') {
+                                return await this.injectText(data.key);
+                            }
+                        }
+                        break;
                 }
-                console.log('Keyboard event (limited support):', action, data);
+                console.log('Keyboard event processed:', action, data.key);
                 return true;
             }
 

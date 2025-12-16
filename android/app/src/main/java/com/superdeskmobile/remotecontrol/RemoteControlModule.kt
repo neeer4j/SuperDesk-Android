@@ -150,4 +150,18 @@ class RemoteControlModule(reactContext: ReactApplicationContext) :
         val success = RemoteControlAccessibilityService.performGlobalAction(action)
         promise.resolve(success)
     }
+
+    /**
+     * Inject text into the focused input field.
+     */
+    @ReactMethod
+    fun injectText(text: String, promise: Promise) {
+        if (!RemoteControlAccessibilityService.isServiceEnabled()) {
+            promise.reject("SERVICE_DISABLED", "Accessibility service is not enabled")
+            return
+        }
+
+        val success = RemoteControlAccessibilityService.injectText(text)
+        promise.resolve(success)
+    }
 }

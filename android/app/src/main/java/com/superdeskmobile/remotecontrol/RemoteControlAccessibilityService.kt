@@ -10,6 +10,8 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+import android.os.Bundle
 import androidx.annotation.RequiresApi
 
 /**
@@ -105,6 +107,14 @@ class RemoteControlAccessibilityService : AccessibilityService() {
                 "powerdialog" -> service.performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
                 else -> false
             }
+        }
+
+        /**
+         * Inject text into the focused input field.
+         */
+        fun injectText(text: String): Boolean {
+            val service = instance ?: return false
+            return service.injectTextInternal(text)
         }
     }
 
@@ -237,5 +247,48 @@ class RemoteControlAccessibilityService : AccessibilityService() {
             },
             handler
         )
+    }
+
+    /**
+     * Inject text into the currently focused node.
+     */
+    private fun injectTextInternal(text: String): Boolean {
+        try {
+            val root = rootInActiveWindow ?: return false
+            val focus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return false
+
+            if (focus.isEditable) {
+                val currentText = focus.text?.toString() ?: ""
+                val arguments = Bundle()
+
+                if (text == "Backspace") {
+                    // Remove last character
+                    if (currentText.isNotEmpty()) {
+                        arguments.putCharSequence(
+                            AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                            currentText.subSequence(0, currentText.length - 1)
+                        )
+                        return focus.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+                    }
+                    return true // Nothing to delete, but action "succeeded"
+                } else if (text == "Enter") {
+                    // Try to click the node (might submit forms) or search for IME action
+                    // Simple click is often best fallback for Enter in generic contexts
+                    return focus.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                } else {
+                    // Append text
+                    // Note: This replaces the text. Truly simulating typing requires appending.
+                    arguments.putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        currentText + text
+                    )
+                    return focus.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+                }
+            }
+            return false
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to inject text: $text", e)
+            return false
+        }
     }
 }

@@ -55,8 +55,11 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
         };
         sessionManager.on('sessionEnded', handleSessionEnded);
 
-        // Set up Socket.IO event handlers for remote control input
-        // This handles events sent by the desktop via Socket.IO relay
+        // Drag state for swipe gesture detection
+        let dragState: { startX: number; startY: number; startTime: number } | null = null;
+        const DRAG_THRESHOLD = 0.02; // Minimum distance (normalized) to consider it a swipe vs tap
+        const CLICK_TIMEOUT = 200; // ms - if held longer than this, consider it for drag/swipe
+
         socketService.onMouseEvent(async (data) => {
             console.log('📱 *** SOCKET.IO MOUSE EVENT RECEIVED ***');
             console.log('📱 Event type:', data.type, 'x:', data.x?.toFixed(3), 'y:', data.y?.toFixed(3));
@@ -70,26 +73,80 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                     return;
                 }
 
-                // Map the event types to what RemoteControlService expects
-                let action: string = data.type;
-                if (data.type === 'down') action = 'click';  // mousedown triggers tap
-                if (data.type === 'up') action = 'move';     // mouseup - just acknowledge
-                if (data.type === 'scroll') action = 'wheel';
+                // Handle drag-to-swipe gesture tracking
+                if (data.type === 'down') {
+                    // Start tracking potential drag/swipe
+                    dragState = { startX: data.x, startY: data.y, startTime: Date.now() };
+                    console.log('📱 Drag started at:', dragState.startX.toFixed(3), dragState.startY.toFixed(3));
+                    return; // Don't tap yet - wait for up event
+                }
 
-                console.log('📱 Mapped action:', action);
+                if (data.type === 'move' && dragState) {
+                    // Just track movement - don't do anything yet
+                    // The actual gesture will be performed on 'up'
+                    console.log('📱 Dragging...', data.x?.toFixed(3), data.y?.toFixed(3));
+                    return;
+                }
 
-                const result = await remoteControlService.handleRemoteInputEvent({
-                    type: 'mouse',
-                    action: action,
-                    data: {
-                        x: data.x,
-                        y: data.y,
-                        button: data.button || 0,
-                        deltaX: data.deltaX || 0,
-                        deltaY: data.deltaY || 0,
-                    },
-                });
-                console.log('📱 Remote control result:', result);
+                if (data.type === 'up' && dragState) {
+                    // Calculate distance moved
+                    const deltaX = data.x - dragState.startX;
+                    const deltaY = data.y - dragState.startY;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const elapsed = Date.now() - dragState.startTime;
+
+                    console.log('📱 Drag ended. Distance:', distance.toFixed(3), 'Time:', elapsed, 'ms');
+
+                    if (distance > DRAG_THRESHOLD) {
+                        // This is a swipe gesture
+                        console.log('📱 Performing SWIPE from', dragState.startX.toFixed(3), dragState.startY.toFixed(3),
+                            'to', data.x.toFixed(3), data.y.toFixed(3));
+                        await remoteControlService.handleRemoteInputEvent({
+                            type: 'mouse',
+                            action: 'swipe',
+                            data: {
+                                startX: dragState.startX,
+                                startY: dragState.startY,
+                                endX: data.x,
+                                endY: data.y,
+                                duration: Math.min(elapsed, 500), // Cap duration for smooth swipe
+                            },
+                        });
+                    } else {
+                        // This is a tap (click) - small movement
+                        console.log('📱 Performing TAP at', dragState.startX.toFixed(3), dragState.startY.toFixed(3));
+                        await remoteControlService.handleRemoteInputEvent({
+                            type: 'mouse',
+                            action: 'click',
+                            data: {
+                                x: dragState.startX,
+                                y: dragState.startY,
+                                button: data.button || 0,
+                            },
+                        });
+                    }
+                    dragState = null;
+                    return;
+                }
+
+                // Handle scroll/wheel events (no change needed)
+                if (data.type === 'scroll') {
+                    console.log('📱 Performing SCROLL');
+                    await remoteControlService.handleRemoteInputEvent({
+                        type: 'mouse',
+                        action: 'wheel',
+                        data: {
+                            x: data.x || 0.5,
+                            y: data.y || 0.5,
+                            deltaX: data.deltaX || 0,
+                            deltaY: data.deltaY || 0,
+                        },
+                    });
+                    return;
+                }
+
+                // Fallback for any other event types
+                console.log('📱 Unhandled mouse event type:', data.type);
             } catch (error) {
                 console.error('Error handling mouse event:', error);
             }
@@ -165,12 +222,61 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                 }
             });
 
-            // Listen for incoming input events from the desktop
-            webRTCService.onDataChannelMessage((message: string) => {
+            // Listen for incoming input events from the desktop (data channel)
+            // Use same drag detection logic as socket.io handler for consistent behavior
+            webRTCService.onDataChannelMessage(async (message: string) => {
                 try {
                     const event = JSON.parse(message);
-                    if (event.type === 'mouse' || event.type === 'keyboard' || event.type === 'touch') {
-                        remoteControlService.handleRemoteInputEvent(event);
+
+                    if (event.type === 'mouse' || event.type === 'touch') {
+                        const data = event.data || {};
+                        const action = event.action;
+
+                        console.log('📱 [DC] mouse event:', action, 'x:', data.x?.toFixed(3), 'y:', data.y?.toFixed(3));
+
+                        const accessibilityOk = await remoteControlService.isServiceEnabled();
+                        if (!accessibilityOk) {
+                            console.error('❌ Accessibility Service NOT enabled');
+                            return;
+                        }
+
+                        // Handle drag-to-swipe (same as socket.io)
+                        if (action === 'down') {
+                            dragState = { startX: data.x, startY: data.y, startTime: Date.now() };
+                            return;
+                        }
+                        if (action === 'move' && dragState) {
+                            return;
+                        }
+                        if (action === 'up' && dragState) {
+                            const dx = data.x - dragState.startX;
+                            const dy = data.y - dragState.startY;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            const elapsed = Date.now() - dragState.startTime;
+
+                            if (dist > DRAG_THRESHOLD) {
+                                await remoteControlService.handleRemoteInputEvent({
+                                    type: 'mouse', action: 'swipe',
+                                    data: { startX: dragState.startX, startY: dragState.startY, endX: data.x, endY: data.y, duration: Math.min(elapsed, 500) },
+                                });
+                            } else {
+                                await remoteControlService.handleRemoteInputEvent({
+                                    type: 'mouse', action: 'click',
+                                    data: { x: dragState.startX, y: dragState.startY, button: 0 },
+                                });
+                            }
+                            dragState = null;
+                            return;
+                        }
+
+                        // Direct actions (click, wheel)
+                        if (action === 'click' || action === 'tap') {
+                            await remoteControlService.handleRemoteInputEvent({ type: 'mouse', action: 'click', data });
+                        } else if (action === 'wheel' || action === 'scroll') {
+                            await remoteControlService.handleRemoteInputEvent({ type: 'mouse', action: 'wheel', data });
+                        }
+                    } else if (event.type === 'keyboard') {
+                        await remoteControlService.handleRemoteInputEvent(event);
                     }
                 } catch (e) {
                     console.warn('Failed to parse data channel message:', e);
