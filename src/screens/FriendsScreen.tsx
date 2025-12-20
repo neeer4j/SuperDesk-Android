@@ -1,28 +1,31 @@
 // Friends Screen - Display and manage friends list
+// Redesigned with new Design System
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    StatusBar,
     FlatList,
-    TextInput,
-    Image,
     Alert,
     RefreshControl,
+    TouchableOpacity,
+    StyleSheet,
+    View,
+    Text,
+    TextInput,
     ActivityIndicator,
+    Image,
 } from 'react-native';
-import { SettingsIcon } from '../components/Icons';
+import { SettingsIcon, BackIcon } from '../components/Icons'; // Assuming generic icons, or use specifics if available
 import { friendsService, Friend } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
+import { ScreenContainer, Card, Button } from '../components/ui';
+import { colors, typography, layout } from '../theme/designSystem';
 
 interface FriendsScreenProps {
     navigation: any;
 }
 
 const FriendsScreen: React.FC<FriendsScreenProps> = ({ navigation }) => {
-    const { theme, colors } = useTheme();
+    // We rely on designSystem values
+    const { theme } = useTheme();
     const [friends, setFriends] = useState<Friend[]>([]);
     const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -45,7 +48,7 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ navigation }) => {
             setPendingRequests(requests);
         } catch (error: any) {
             console.error('Failed to load friends:', error);
-            Alert.alert('Error', error.message || 'Failed to load friends');
+            // Alert.alert('Error', error.message || 'Failed to load friends');
         } finally {
             setIsLoading(false);
         }
@@ -108,144 +111,136 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ navigation }) => {
         );
     };
 
-    // Dynamic styles based on theme
-    const dynamicStyles = {
-        container: { backgroundColor: colors.background },
-        card: { backgroundColor: colors.card, borderColor: colors.cardBorder },
-        text: { color: colors.text },
-        subText: { color: colors.subText },
-        input: {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-            color: colors.text,
-        },
-    };
-
     const renderFriendItem = ({ item }: { item: Friend }) => (
-        <View style={[styles.friendItem, dynamicStyles.card]}>
-            {item.friend_profile?.avatar_url ? (
-                <Image
-                    source={{ uri: item.friend_profile.avatar_url }}
-                    style={styles.avatar}
-                />
-            ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.iconBackground, borderColor: colors.primary }]}>
-                    <Text style={[styles.avatarText, { color: colors.primary }]}>
-                        {item.friend_profile?.username?.charAt(0).toUpperCase() || '?'}
-                    </Text>
-                </View>
-            )}
+        <Card style={styles.friendItem} padding="sm">
             <View style={styles.friendInfo}>
-                <Text style={[styles.friendName, dynamicStyles.text]}>
-                    {item.friend_profile?.display_name || item.friend_profile?.username}
-                </Text>
-                <Text style={[styles.friendUsername, dynamicStyles.subText]}>@{item.friend_profile?.username}</Text>
+                <View style={styles.avatarContainer}>
+                    {item.friend_profile?.avatar_url ? (
+                        <Image
+                            source={{ uri: item.friend_profile.avatar_url }}
+                            style={styles.avatar}
+                        />
+                    ) : (
+                        <View style={styles.avatarPlaceholder}>
+                            <Text style={styles.avatarText}>
+                                {item.friend_profile?.username?.charAt(0).toUpperCase() || '?'}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.textContainer}>
+                    <Text style={styles.friendName}>
+                        {item.friend_profile?.display_name || item.friend_profile?.username}
+                    </Text>
+                    <Text style={styles.friendUsername}>@{item.friend_profile?.username}</Text>
+                </View>
             </View>
-            <TouchableOpacity
-                style={[styles.removeButton, { backgroundColor: colors.error + '20', borderColor: colors.error + '40' }]}
+
+            <Button
+                variant="danger"
+                size="sm"
+                title="Remove"
+                icon={<Text style={{ fontSize: 12 }}>🗑️</Text>}
                 onPress={() => handleRemoveFriend(item.id, item.friend_profile?.username || 'this friend')}
-            >
-                <Text style={[styles.removeButtonText, { color: colors.error }]}>Remove</Text>
-            </TouchableOpacity>
-        </View>
+                style={{ paddingHorizontal: 8 }}
+            />
+        </Card>
     );
 
     const renderPendingRequest = ({ item }: { item: Friend }) => (
-        <View style={[styles.requestItem, dynamicStyles.card, { borderColor: colors.primary + '40' }]}>
-            {item.friend_profile?.avatar_url ? (
-                <Image
-                    source={{ uri: item.friend_profile.avatar_url }}
-                    style={styles.avatar}
-                />
-            ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.iconBackground, borderColor: colors.primary }]}>
-                    <Text style={[styles.avatarText, { color: colors.primary }]}>
-                        {item.friend_profile?.username?.charAt(0).toUpperCase() || '?'}
-                    </Text>
-                </View>
-            )}
+        <Card style={{ ...styles.friendItem, ...styles.pendingItem }} padding="sm">
             <View style={styles.friendInfo}>
-                <Text style={[styles.friendName, dynamicStyles.text]}>
-                    {item.friend_profile?.display_name || item.friend_profile?.username}
-                </Text>
-                <Text style={[styles.friendUsername, dynamicStyles.subText]}>@{item.friend_profile?.username}</Text>
+                <View style={styles.avatarContainer}>
+                    {item.friend_profile?.avatar_url ? (
+                        <Image
+                            source={{ uri: item.friend_profile.avatar_url }}
+                            style={styles.avatar}
+                        />
+                    ) : (
+                        <View style={styles.avatarPlaceholder}>
+                            <Text style={styles.avatarText}>
+                                {item.friend_profile?.username?.charAt(0).toUpperCase() || '?'}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.textContainer}>
+                    <Text style={styles.friendName}>
+                        {item.friend_profile?.display_name || item.friend_profile?.username}
+                    </Text>
+                    <Text style={styles.friendUsername}>@{item.friend_profile?.username}</Text>
+                </View>
             </View>
-            <TouchableOpacity
-                style={[styles.acceptButton, { backgroundColor: colors.success + '20', borderColor: colors.success + '40' }]}
+
+            <Button
+                variant="primary"
+                size="sm"
+                title="Accept"
                 onPress={() => handleAcceptRequest(item.id)}
-            >
-                <Text style={[styles.acceptButtonText, { color: colors.success }]}>Accept</Text>
-            </TouchableOpacity>
-        </View>
+                style={{ paddingHorizontal: 16 }}
+            />
+        </Card>
     );
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, dynamicStyles.container]}>
+            <ScreenContainer style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+            </ScreenContainer>
         );
     }
 
     return (
-        <View style={[styles.container, dynamicStyles.container]}>
-            <StatusBar
-                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                backgroundColor={colors.background}
-            />
-
+        <ScreenContainer>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={[styles.headerTitle, dynamicStyles.text]}>Friends</Text>
-                <TouchableOpacity
-                    style={styles.settingsButton}
-                    onPress={() => navigation.navigate('Settings')}
-                >
-                    <SettingsIcon size={24} color={colors.primary} />
+                <Text style={styles.headerTitle}>Friends</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                    <SettingsIcon size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
             </View>
 
-            {/* Add Friend Section */}
-            <View style={styles.addFriendSection}>
+            {/* Add Friend Input */}
+            <View style={styles.addFriendContainer}>
                 <TextInput
-                    style={[styles.searchInput, dynamicStyles.input]}
+                    style={styles.searchInput}
                     placeholder="Enter username to add friend"
-                    placeholderTextColor={colors.subText}
+                    placeholderTextColor={colors.textTertiary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     autoCapitalize="none"
                 />
-                <TouchableOpacity
-                    style={[styles.addButton, { backgroundColor: colors.primary }]}
+                <Button
+                    size="md"
+                    title={isAddingFriend ? "..." : "+"}
                     onPress={handleAddFriend}
                     disabled={isAddingFriend}
-                >
-                    {isAddingFriend ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                        <Text style={styles.addButtonText}>Add</Text>
-                    )}
-                </TouchableOpacity>
+                    style={styles.addButton}
+                />
             </View>
 
-            {/* Pending Requests */}
-            {pendingRequests.length > 0 && (
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.primary }]}>Pending Requests ({pendingRequests.length})</Text>
-                    <FlatList
-                        data={pendingRequests}
-                        renderItem={renderPendingRequest}
-                        keyExtractor={(item) => item.id}
-                        scrollEnabled={false}
-                    />
-                </View>
-            )}
+            {/* Lists */}
+            <View style={styles.listContainer}>
+                {pendingRequests.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Pending Requests ({pendingRequests.length})
+                        </Text>
+                        <FlatList
+                            data={pendingRequests}
+                            renderItem={renderPendingRequest}
+                            keyExtractor={(item) => item.id}
+                            scrollEnabled={false}
+                        />
+                    </View>
+                )}
 
-            {/* Friends List */}
-            <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+                <Text style={styles.sectionTitle}>
                     {friends.length > 0 ? `Friends (${friends.length})` : 'No Friends Yet'}
                 </Text>
+
                 <FlatList
                     data={friends}
                     renderItem={renderFriendItem}
@@ -259,25 +254,17 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ navigation }) => {
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Text style={[styles.emptyText, dynamicStyles.subText]}>
-                                Add friends using their username above
-                            </Text>
+                            <Text style={styles.emptyText}>Add friends using their username above</Text>
                         </View>
                     }
                 />
             </View>
-        </View>
+        </ScreenContainer>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-    },
     loadingContainer: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -285,143 +272,110 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 16,
+        paddingVertical: layout.spacing.md,
+        marginBottom: layout.spacing.md,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
+        fontSize: typography.size.xl,
+        fontFamily: typography.fontFamily.bold,
+        color: colors.textPrimary,
     },
-    settingsButton: {
-        padding: 8,
-    },
-    addFriendSection: {
+    addFriendContainer: {
         flexDirection: 'row',
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        marginBottom: layout.spacing.lg,
     },
     searchInput: {
         flex: 1,
-        backgroundColor: '#16161e',
-        borderRadius: 12,
-        padding: 14,
-        fontSize: 16,
-        color: '#fff',
+        backgroundColor: colors.surface,
+        borderRadius: layout.borderRadius.md,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        color: colors.textPrimary,
+        fontFamily: typography.fontFamily.regular,
+        fontSize: typography.size.md,
         borderWidth: 1,
-        borderColor: '#2a2a3a',
-        marginRight: 12,
+        borderColor: colors.border,
+        marginRight: 10,
     },
     addButton: {
-        backgroundColor: '#8b5cf6',
-        borderRadius: 12,
-        paddingHorizontal: 24,
+        width: 50, // Square button
         justifyContent: 'center',
-        minWidth: 80,
+        alignItems: 'center',
+        paddingHorizontal: 0,
     },
-    addButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 16,
+    listContainer: {
+        flex: 1,
     },
     section: {
-        flex: 1,
-        paddingHorizontal: 20,
+        marginBottom: layout.spacing.lg,
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#8b5cf6',
-        marginBottom: 12,
+        fontSize: typography.size.sm,
+        fontFamily: typography.fontFamily.semiBold,
+        color: colors.primary,
+        marginBottom: layout.spacing.sm,
+        marginTop: layout.spacing.xs,
     },
     friendItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#16161e',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
+        justifyContent: 'space-between',
+        marginBottom: layout.spacing.sm,
+    },
+    pendingItem: {
+        borderColor: colors.primary + '40',
         borderWidth: 1,
-        borderColor: '#2a2a3a',
-    },
-    requestItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#16161e',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#8b5cf640',
-    },
-    avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-    },
-    avatarPlaceholder: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#8b5cf620',
-        borderWidth: 2,
-        borderColor: '#8b5cf6',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#8b5cf6',
     },
     friendInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
         flex: 1,
-        marginLeft: 12,
+    },
+    avatarContainer: {
+        marginRight: 12,
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.surfaceHighlight,
+    },
+    avatarPlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.primary + '20',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    avatarText: {
+        fontSize: 16,
+        fontFamily: typography.fontFamily.bold,
+        color: colors.primary,
+    },
+    textContainer: {
+        flex: 1,
     },
     friendName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
+        fontSize: typography.size.sm,
+        fontFamily: typography.fontFamily.semiBold,
+        color: colors.textPrimary,
     },
     friendUsername: {
-        fontSize: 14,
-        color: '#888',
-        marginTop: 2,
-    },
-    removeButton: {
-        backgroundColor: '#ef444420',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#ef444440',
-    },
-    removeButtonText: {
-        color: '#ef4444',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    acceptButton: {
-        backgroundColor: '#10b98120',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#10b98140',
-    },
-    acceptButtonText: {
-        color: '#10b981',
-        fontWeight: '600',
-        fontSize: 14,
+        fontSize: typography.size.xs,
+        fontFamily: typography.fontFamily.regular,
+        color: colors.textTertiary,
     },
     emptyState: {
         paddingVertical: 40,
         alignItems: 'center',
     },
     emptyText: {
-        fontSize: 16,
-        color: '#666',
+        color: colors.textSecondary,
+        fontFamily: typography.fontFamily.regular,
+        fontSize: typography.size.md,
     },
 });
 

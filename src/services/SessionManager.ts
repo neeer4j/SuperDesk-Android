@@ -179,19 +179,41 @@ class SessionManager {
     async createSession(): Promise<void> {
         console.log('📱 [SessionManager] Creating session...');
 
-        try {
-            // Connect to signaling server if not connected
-            if (!socketService.isConnected()) {
-                await socketService.connect();
-            }
+        return new Promise(async (resolve, reject) => {
+            const timeout = setTimeout(() => {
+                console.error('📱 [SessionManager] Session creation timed out');
+                this.emit('error', 'Connection timed out. Server may be starting up, please try again.');
+                reject(new Error('Connection timed out'));
+            }, 15000);
 
-            // Create session - the callback will update state
-            socketService.createSession('mobile');
-        } catch (error: any) {
-            console.error('📱 [SessionManager] Failed to create session:', error);
-            this.emit('error', error.message || 'Failed to create session');
-            throw error;
-        }
+            // Listen for session created event
+            const onCreated = () => {
+                clearTimeout(timeout);
+                resolve();
+            };
+            this.on('stateChanged', (state: SessionState) => {
+                if (state.isActive && state.role === 'host' && state.sessionId) {
+                    onCreated();
+                }
+            });
+
+            try {
+                // Connect to signaling server if not connected
+                if (!socketService.isConnected()) {
+                    console.log('📱 [SessionManager] Connecting to signaling server...');
+                    await socketService.connect();
+                    console.log('📱 [SessionManager] Connected! Creating session...');
+                }
+
+                // Create session - the callback will update state
+                socketService.createSession('mobile');
+            } catch (error: any) {
+                clearTimeout(timeout);
+                console.error('📱 [SessionManager] Failed to create session:', error);
+                this.emit('error', error.message || 'Failed to connect to server');
+                reject(error);
+            }
+        });
     }
 
     // Join an existing session as guest

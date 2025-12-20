@@ -4,9 +4,11 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { colors } from '../theme/designSystem';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
+import LandingScreen from '../screens/LandingScreen';
 import HostSessionScreen from '../screens/HostSessionScreen';
 import JoinSessionScreen from '../screens/JoinSessionScreen';
 import FileTransferScreen from '../screens/FileTransferScreen';
@@ -32,6 +34,7 @@ import { useTheme } from '../context/ThemeContext';
 
 // Type definitions
 export type RootStackParamList = {
+    Landing: undefined;
     Login: undefined;
     MainTabs: undefined;
     Remote: {
@@ -63,21 +66,26 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 // Bottom Tab Navigator
 const TabNavigator: React.FC = () => {
-    const { colors } = useTheme();
+    // We can use our direct design system values or stick to useTheme() if we want dynamic switching
+    // mixing both for now to ensure we hit the dark theme productivity vibe
+    const { colors: themeColors } = useTheme();
+
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: [styles.tabBar, {
-                    backgroundColor: colors.card,
-                    borderTopColor: colors.border
+                    backgroundColor: colors.surface, // New surface color
+                    borderTopColor: colors.border,
+                    borderTopWidth: 1,
+                    elevation: 0, // Flat look
                 }],
                 tabBarActiveTintColor: colors.primary,
-                tabBarInactiveTintColor: colors.subText,
+                tabBarInactiveTintColor: colors.textTertiary,
                 tabBarShowLabel: true,
                 tabBarLabelStyle: styles.tabLabel,
                 tabBarBackground: () => (
-                    <View style={{ flex: 1, backgroundColor: colors.card }} />
+                    <View style={{ flex: 1, backgroundColor: colors.surface }} />
                 ),
             }}
         >
@@ -86,7 +94,7 @@ const TabNavigator: React.FC = () => {
                 component={HostSessionScreen}
                 options={{
                     tabBarLabel: 'Host',
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color, size, focused }) => (
                         <HostIcon size={size} color={color} />
                     ),
                 }}
@@ -96,7 +104,7 @@ const TabNavigator: React.FC = () => {
                 component={JoinSessionScreen}
                 options={{
                     tabBarLabel: 'Join',
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color, size, focused }) => (
                         <JoinIcon size={size} color={color} />
                     ),
                 }}
@@ -106,7 +114,7 @@ const TabNavigator: React.FC = () => {
                 component={FileTransferScreen}
                 options={{
                     tabBarLabel: 'Files',
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color, size, focused }) => (
                         <FileTransferIcon size={size} color={color} />
                     ),
                 }}
@@ -116,7 +124,7 @@ const TabNavigator: React.FC = () => {
                 component={FriendsScreen}
                 options={{
                     tabBarLabel: 'Friends',
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color, size, focused }) => (
                         <FriendsIcon size={size} color={color} />
                     ),
                 }}
@@ -126,7 +134,7 @@ const TabNavigator: React.FC = () => {
                 component={MessagesScreen}
                 options={{
                     tabBarLabel: 'Chat',
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color, size, focused }) => (
                         <MessagesIcon size={size} color={color} />
                     ),
                 }}
@@ -206,9 +214,12 @@ const Navigation: React.FC = () => {
                 }}
             >
                 {!isAuthenticated ? (
-                    <Stack.Screen name="Login">
-                        {(props) => <LoginScreen {...props} onLogin={handleLogin} />}
-                    </Stack.Screen>
+                    <>
+                        <Stack.Screen name="Landing" component={LandingScreen} />
+                        <Stack.Screen name="Login">
+                            {(props) => <LoginScreen {...props} onLogin={handleLogin} />}
+                        </Stack.Screen>
+                    </>
                 ) : (
                     <>
                         <Stack.Screen name="MainTabs" component={TabNavigator} />
@@ -240,13 +251,16 @@ const Navigation: React.FC = () => {
 const styles = StyleSheet.create({
     tabBar: {
         borderTopWidth: 1,
-        height: 70,
-        paddingBottom: 10,
-        paddingTop: 10,
+        // Remove fixed height to let safe area logic handle it naturally if needed, 
+        // but 60-70 is standard for modern apps
+        height: 65,
+        paddingTop: 8,
+        paddingBottom: 8, // Will be overridden by safe area in sets but good default
     },
     tabLabel: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '500',
+        marginTop: 4,
     },
     loadingContainer: {
         flex: 1,

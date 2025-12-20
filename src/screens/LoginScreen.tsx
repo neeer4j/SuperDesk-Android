@@ -1,21 +1,21 @@
 // Login Screen - OTP Authentication matching Desktop design
 import React, { useState, useEffect } from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    StatusBar,
-    ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
+    Alert,
+    StatusBar,
     Image,
+    View,
+    Text,
+    ScrollView,
+    ActivityIndicator,
+    StyleSheet,
 } from 'react-native';
 import { authService } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
+import { VStack, Input, Button, Heading } from '../components/ui';
+import { layout, typography } from '../theme/designSystem';
 
 interface LoginScreenProps {
     navigation: any;
@@ -121,354 +121,285 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
         setOtpCode('');
     };
 
-    // Dynamic styles based on theme
-    const dynamicStyles = {
-        container: {
-            backgroundColor: colors.background,
-        },
-        card: {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-            shadowColor: theme === 'light' ? '#000' : 'transparent',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: theme === 'light' ? 0.08 : 0,
-            shadowRadius: 8,
-            elevation: theme === 'light' ? 3 : 0,
-        },
-        text: {
-            color: colors.text,
-        },
-        subText: {
-            color: colors.subText,
-        },
-        input: {
-            backgroundColor: theme === 'dark' ? '#1e1e2e' : '#F0EDFA',
-            borderColor: theme === 'dark' ? '#3a3a4a' : colors.primary + '40',
-            color: colors.text,
-        },
-    };
-
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, dynamicStyles.container]}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
 
-    // Welcome Back Screen - Desktop Style
+    // Welcome Back Screen
     if (step === 'welcome' && userProfile) {
         return (
-            <View style={[styles.container, dynamicStyles.container]}>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
                 <StatusBar
                     barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
                     backgroundColor={colors.background}
                 />
+                <View style={styles.centerContainer}>
+                    <Heading size="3xl" color={colors.text} style={styles.textCenter}>
+                        Welcome Back!
+                    </Heading>
+                    <Text style={[styles.welcomeSubtext, { color: colors.subText }]}>
+                        You're currently signed in as
+                    </Text>
 
-                <View style={styles.welcomeContent}>
-                    {/* Title */}
-                    <Text style={[styles.welcomeTitle, dynamicStyles.text]}>Welcome Back!</Text>
-                    <Text style={[styles.welcomeSubtitle, dynamicStyles.subText]}>You're currently signed in as</Text>
-
-                    {/* Profile Card */}
-                    <View style={[styles.profileCard, dynamicStyles.card]}>
+                    <View
+                        style={[
+                            styles.profileCard,
+                            {
+                                backgroundColor: colors.card,
+                                borderColor: colors.cardBorder,
+                            },
+                        ]}
+                    >
+                        {/* Avatar */}
                         {userProfile.avatar_url ? (
                             <Image
                                 source={{ uri: userProfile.avatar_url }}
-                                style={styles.profileAvatar}
+                                style={styles.avatar}
                             />
                         ) : (
-                            <View style={[styles.profileAvatarPlaceholder, { backgroundColor: colors.primary }]}>
-                                <Text style={styles.profileAvatarText}>
+                            <View
+                                style={[
+                                    styles.avatarPlaceholder,
+                                    { backgroundColor: colors.primary },
+                                ]}
+                            >
+                                <Text style={styles.avatarText}>
                                     {userProfile.username.charAt(0).toUpperCase()}
                                 </Text>
                             </View>
                         )}
-
-                        <Text style={[styles.profileUsername, dynamicStyles.text]}>@{userProfile.username}</Text>
+                        <Heading size="xl" color={colors.text}>
+                            @{userProfile.username}
+                        </Heading>
                     </View>
 
-                    {/* Continue Button */}
-                    <TouchableOpacity
-                        style={[styles.continueButton, { backgroundColor: colors.primary }]}
+                    <Button
+                        title="Continue to Dashboard"
                         onPress={handleContinue}
-                    >
-                        <Text style={styles.continueButtonText}>Continue to Dashboard</Text>
-                    </TouchableOpacity>
+                        size="lg"
+                        style={styles.fullWidth}
+                    />
 
-                    {/* Switch Account */}
-                    <TouchableOpacity
-                        style={styles.switchButton}
+                    <Button
+                        title="Sign in with different account"
                         onPress={handleSwitchAccount}
-                    >
-                        <Text style={[styles.switchButtonText, { color: colors.primary }]}>Sign in with different account</Text>
-                    </TouchableOpacity>
+                        variant="ghost"
+                        style={styles.switchButton}
+                    />
                 </View>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, dynamicStyles.container]}>
-            <StatusBar
-                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                backgroundColor={colors.background}
-            />
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.flex}
+        >
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                <StatusBar
+                    barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+                    backgroundColor={colors.background}
+                />
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.formContainer}>
+                        {/* Header */}
+                        <VStack spacing="sm" align="center" style={styles.header}>
+                            <Heading size="4xl" color={colors.text} style={styles.letterSpacing}>
+                                SuperDesk
+                            </Heading>
+                            <Text
+                                style={[
+                                    styles.headerSubtext,
+                                    { color: colors.primary },
+                                ]}
+                            >
+                                REMOTE DESKTOP CONTROL
+                            </Text>
+                        </VStack>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardView}
-            >
-                <ScrollView
-                    contentContainerStyle={styles.scrollContent}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    {/* Logo */}
-                    <View style={styles.logoContainer}>
-                        <Text style={[styles.logo, dynamicStyles.text]}>SuperDesk</Text>
-                        <Text style={[styles.subtitle, { color: colors.primary }]}>Remote Desktop Control</Text>
-                    </View>
+                        {/* Card */}
+                        <View
+                            style={[
+                                styles.card,
+                                {
+                                    backgroundColor: colors.card,
+                                    borderColor: colors.cardBorder,
+                                    shadowColor: theme === 'light' ? '#000' : 'transparent',
+                                },
+                            ]}
+                        >
+                            {step === 'email' ? (
+                                <VStack spacing="xl">
+                                    <VStack spacing="sm">
+                                        <Heading size="xl" color={colors.text} style={styles.textCenter}>
+                                            Sign In
+                                        </Heading>
+                                        <Text style={[styles.cardSubtext, { color: colors.subText }]}>
+                                            Enter your email to receive a verification code
+                                        </Text>
+                                    </VStack>
 
-                    {/* Auth Card */}
-                    <View style={[styles.card, dynamicStyles.card]}>
-                        {step === 'email' ? (
-                            <>
-                                <Text style={[styles.cardTitle, dynamicStyles.text]}>Sign In</Text>
-                                <Text style={[styles.cardDescription, dynamicStyles.subText]}>
-                                    Enter your email to receive a verification code
-                                </Text>
-
-                                <View style={styles.inputContainer}>
-                                    <Text style={[styles.inputLabel, dynamicStyles.subText]}>Email</Text>
-                                    <TextInput
-                                        style={[styles.input, dynamicStyles.input]}
+                                    <Input
+                                        label="EMAIL"
                                         placeholder="Enter your email"
-                                        placeholderTextColor={colors.subText}
                                         value={email}
                                         onChangeText={setEmail}
                                         keyboardType="email-address"
                                         autoCapitalize="none"
-                                        autoComplete="email"
+                                        size="xl"
                                     />
-                                </View>
 
-                                <TouchableOpacity
-                                    style={[styles.continueButton, { backgroundColor: colors.primary }]}
-                                    onPress={handleSendOTP}
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.continueButtonText}>Send Code</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </>
-                        ) : (
-                            <>
-                                <Text style={[styles.cardTitle, dynamicStyles.text]}>Verify Code</Text>
-                                <Text style={[styles.cardDescription, dynamicStyles.subText]}>
-                                    Enter the 6-digit code sent to {email}
-                                </Text>
+                                    <Button
+                                        title="Send Code"
+                                        onPress={handleSendOTP}
+                                        size="lg"
+                                        loading={isSubmitting}
+                                        disabled={isSubmitting}
+                                    />
+                                </VStack>
+                            ) : (
+                                <VStack spacing="xl">
+                                    <VStack spacing="sm">
+                                        <Heading size="xl" color={colors.text} style={styles.textCenter}>
+                                            Verify Code
+                                        </Heading>
+                                        <Text style={[styles.cardSubtext, { color: colors.subText }]}>
+                                            Enter the 6-digit code sent to {email}
+                                        </Text>
+                                    </VStack>
 
-                                <View style={styles.inputContainer}>
-                                    <Text style={[styles.inputLabel, dynamicStyles.subText]}>Verification Code</Text>
-                                    <TextInput
-                                        style={[styles.input, styles.otpInput, dynamicStyles.input]}
+                                    <Input
+                                        label="VERIFICATION CODE"
                                         placeholder="000000"
-                                        placeholderTextColor={colors.subText}
                                         value={otpCode}
                                         onChangeText={setOtpCode}
                                         keyboardType="number-pad"
                                         maxLength={6}
-                                        textAlign="center"
+                                        size="xl"
+                                        inputStyle={styles.otpInput}
                                     />
-                                </View>
 
-                                <TouchableOpacity
-                                    style={[styles.continueButton, { backgroundColor: colors.primary }]}
-                                    onPress={handleVerifyOTP}
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.continueButtonText}>Verify</Text>
-                                    )}
-                                </TouchableOpacity>
+                                    <Button
+                                        title="Verify"
+                                        onPress={handleVerifyOTP}
+                                        size="lg"
+                                        loading={isSubmitting}
+                                        disabled={isSubmitting}
+                                    />
 
-                                <TouchableOpacity
-                                    style={styles.switchButton}
-                                    onPress={() => setStep('email')}
-                                >
-                                    <Text style={[styles.switchButtonText, { color: colors.primary }]}>
-                                        Wrong email? Go back
-                                    </Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
+                                    <Button
+                                        title="Wrong email? Go back"
+                                        onPress={() => setStep('email')}
+                                        variant="ghost"
+                                    />
+                                </VStack>
+                            )}
+                        </View>
                     </View>
                 </ScrollView>
-            </KeyboardAvoidingView>
-        </View>
+            </View>
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
+    flex: {
+        flex: 1,
+    },
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0f',
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: '#0a0a0f',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    keyboardView: {
+    centerContainer: {
         flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: layout.spacing.xl,
     },
     scrollContent: {
         flexGrow: 1,
-        padding: 24,
         justifyContent: 'center',
     },
-    welcomeContent: {
-        flex: 1,
-        padding: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
+    formContainer: {
+        paddingHorizontal: layout.spacing.xl,
+        paddingVertical: layout.spacing.xxl,
     },
-    logoContainer: {
-        alignItems: 'center',
-        marginBottom: 40,
+    header: {
+        marginBottom: layout.spacing.xxl,
     },
-    logo: {
-        fontSize: 42,
-        fontWeight: 'bold',
-        color: '#ffffff',
-        letterSpacing: 1,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#8b5cf6',
-        marginTop: 8,
+    headerSubtext: {
+        fontSize: typography.size.sm,
+        marginTop: layout.spacing.sm,
         letterSpacing: 2,
         textTransform: 'uppercase',
     },
-    welcomeTitle: {
-        fontSize: 36,
-        fontWeight: 'bold',
-        color: '#ffffff',
-        marginBottom: 12,
-    },
-    welcomeSubtitle: {
-        fontSize: 16,
-        color: '#888',
-        marginBottom: 32,
+    card: {
+        padding: layout.spacing.xl,
+        borderRadius: layout.borderRadius.lg,
+        borderWidth: 1,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 3,
     },
     profileCard: {
-        backgroundColor: '#16161e',
-        borderRadius: 16,
-        padding: 40,
-        alignItems: 'center',
+        padding: layout.spacing.xxl,
+        borderRadius: layout.borderRadius.lg,
         width: '100%',
+        alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#2a2a3a',
-        marginBottom: 24,
+        marginBottom: layout.spacing.xxl,
     },
-    profileAvatar: {
+    avatar: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#fff',
         marginBottom: 20,
     },
-    profileAvatarPlaceholder: {
+    avatarPlaceholder: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#ffffff',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: layout.spacing.lg,
     },
-    profileAvatarText: {
-        fontSize: 40,
+    avatarText: {
+        fontSize: typography.size.xxxl,
         fontWeight: 'bold',
-        color: '#0a0a0f',
+        color: 'white',
     },
-    profileUsername: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: '#ffffff',
-    },
-    continueButton: {
-        backgroundColor: '#8b5cf6',
-        borderRadius: 12,
-        padding: 18,
-        width: '100%',
-        alignItems: 'center',
-    },
-    continueButtonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    switchButton: {
-        marginTop: 20,
-        padding: 12,
-    },
-    switchButtonText: {
-        color: '#8b5cf6',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    card: {
-        backgroundColor: '#16161e',
-        borderRadius: 20,
-        padding: 28,
-        borderWidth: 1,
-        borderColor: '#2a2a3a',
-    },
-    cardTitle: {
-        fontSize: 24,
-        fontWeight: '600',
-        color: '#ffffff',
-        marginBottom: 8,
+    textCenter: {
         textAlign: 'center',
     },
-    cardDescription: {
-        fontSize: 14,
-        color: '#888',
-        marginBottom: 28,
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    inputContainer: {
-        marginBottom: 20,
-    },
-    inputLabel: {
-        fontSize: 14,
-        color: '#888',
-        marginBottom: 8,
-        fontWeight: '500',
-        textTransform: 'uppercase',
+    letterSpacing: {
         letterSpacing: 1,
     },
-    input: {
-        backgroundColor: '#1e1e2e',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        color: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#3a3a4a',
+    welcomeSubtext: {
+        marginBottom: layout.spacing.xxl,
+    },
+    cardSubtext: {
+        textAlign: 'center',
     },
     otpInput: {
-        fontSize: 28,
+        textAlign: 'center',
         letterSpacing: 10,
-        fontWeight: '600',
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    fullWidth: {
+        width: '100%',
+    },
+    switchButton: {
+        marginTop: layout.spacing.md,
     },
 });
 

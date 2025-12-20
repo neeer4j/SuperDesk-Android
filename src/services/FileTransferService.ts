@@ -2,6 +2,10 @@
 import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
 
+// Type declarations for browser globals
+declare function atob(data: string): string;
+declare function btoa(data: string): string;
+
 // RTCDataChannel interface for react-native-webrtc
 interface RTCDataChannel {
     label: string;
@@ -258,12 +262,30 @@ class FileTransferService {
     }
 
     private uint8ArrayToBase64(bytes: Uint8Array): string {
-        let binary = '';
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
+        const CHUNK_SIZE = 0x8000;
+        const chunks: string[] = [];
+        for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+            chunks.push(String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK_SIZE))));
         }
-        return btoa(binary);
+        const binary = chunks.join('');
+        // Use react-native's btoa if available, otherwise manual encoding
+        if (typeof btoa !== 'undefined') {
+            return btoa(binary);
+        }
+        // Fallback manual base64 encoding
+        const base64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        let result = '';
+        for (let i = 0; i < binary.length; i += 3) {
+            const a = binary.charCodeAt(i);
+            const b = i + 1 < binary.length ? binary.charCodeAt(i + 1) : 0;
+            const c = i + 2 < binary.length ? binary.charCodeAt(i + 2) : 0;
+            const bitmap = (a << 16) | (b << 8) | c;
+            result += base64chars[(bitmap >> 18) & 63];
+            result += base64chars[(bitmap >> 12) & 63];
+            result += i + 1 < binary.length ? base64chars[(bitmap >> 6) & 63] : '=';
+            result += i + 2 < binary.length ? base64chars[bitmap & 63] : '=';
+        }
+        return result;
     }
 
     // ================= HANDLING SENDING (ANDROID SENDER) =================
@@ -334,11 +356,11 @@ class FileTransferService {
             const fileBase64 = await RNFS.readFile(file.uri, 'base64');
 
             // Convert base64 to Uint8Array
-            const binaryString = atob(fileBase64);
-            const len = binaryString.length;
+            const binary = atob(fileBase64);
+            const len = binary.length;
             const bytes = new Uint8Array(len);
             for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
+                bytes[i] = binary.charCodeAt(i);
             }
 
             const totalChunks = Math.ceil(len / CHUNK_SIZE);
@@ -367,7 +389,7 @@ class FileTransferService {
                 // Flow control / Throttling to prevent buffer overflows
                 // Simple delay - optimize if needed
                 if (i % 20 === 0) {
-                    await new Promise(r => setTimeout(r, 10));
+                    await new Promise<void>(resolve => setTimeout(resolve, 10));
                 }
             }
 

@@ -1,11 +1,11 @@
 // Messages Screen - Display conversation list
+// Redesigned with new Design System
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
-    StatusBar,
     FlatList,
     Image,
     RefreshControl,
@@ -14,6 +14,8 @@ import {
 import { SettingsIcon } from '../components/Icons';
 import { messagesService, Message } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
+import { ScreenContainer, Card } from '../components/ui'; // Button not strictly needed for list items but good to have
+import { colors, typography, layout } from '../theme/designSystem';
 
 interface MessagesScreenProps {
     navigation: any;
@@ -27,7 +29,8 @@ interface Conversation {
 }
 
 const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
-    const { theme, colors } = useTheme();
+    // We rely on designSystem colors, but can check theme if needed for toggles
+    const { theme } = useTheme();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -69,249 +72,256 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
         return date.toLocaleDateString();
     };
 
-    // Dynamic styles based on theme
-    const dynamicStyles = {
-        container: { backgroundColor: colors.background },
-        card: { backgroundColor: colors.card, borderColor: colors.cardBorder },
-        text: { color: colors.text },
-        subText: { color: colors.subText },
-    };
-
     const renderConversation = ({ item }: { item: Conversation }) => {
         const partner = item.lastMessage.sender_id === item.partnerId
             ? item.lastMessage.sender_profile
             : item.lastMessage.receiver_profile;
 
+        const hasUnread = item.unreadCount > 0;
+
         return (
             <TouchableOpacity
-                style={[styles.conversationItem, dynamicStyles.card]}
                 onPress={() => {
-                    // Navigate to chat screen (to be implemented)
                     navigation.navigate('Chat', { userId: item.partnerId, username: partner?.username });
                 }}
+                activeOpacity={0.7}
             >
-                {partner?.avatar_url ? (
-                    <Image
-                        source={{ uri: partner.avatar_url }}
-                        style={styles.avatar}
-                    />
-                ) : (
-                    <View style={[styles.avatarPlaceholder, { backgroundColor: colors.iconBackground, borderColor: colors.primary }]}>
-                        <Text style={[styles.avatarText, { color: colors.primary }]}>
-                            {partner?.username?.charAt(0).toUpperCase() || '?'}
-                        </Text>
-                    </View>
-                )}
-                <View style={styles.conversationInfo}>
-                    <View style={styles.conversationHeader}>
-                        <Text style={[styles.conversationName, dynamicStyles.text]}>
-                            {partner?.display_name || partner?.username || 'Unknown'}
-                        </Text>
-                        <Text style={[styles.timestamp, dynamicStyles.subText]}>
-                            {formatTime(item.lastMessage.created_at)}
-                        </Text>
-                    </View>
-                    <View style={styles.messagePreview}>
-                        <Text
-                            style={[
-                                styles.lastMessage,
-                                dynamicStyles.subText,
-                                item.unreadCount > 0 && [styles.unreadMessage, dynamicStyles.text]
-                            ]}
-                            numberOfLines={1}
-                        >
-                            {item.lastMessage.content}
-                        </Text>
-                        {item.unreadCount > 0 && (
-                            <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
-                                <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+                <Card
+                    variant="elevated"
+                    padding="sm"
+                    style={{ ...styles.conversationItem, ...(hasUnread ? styles.unreadItem : {}) }}
+                >
+                    <View style={styles.avatarContainer}>
+                        {partner?.avatar_url ? (
+                            <Image
+                                source={{ uri: partner.avatar_url }}
+                                style={styles.avatar}
+                            />
+                        ) : (
+                            <View style={styles.avatarPlaceholder}>
+                                <Text style={styles.avatarText}>
+                                    {partner?.username?.charAt(0).toUpperCase() || '?'}
+                                </Text>
                             </View>
                         )}
+                        {/* Online indicator could go here */}
                     </View>
-                </View>
-            </TouchableOpacity>
+
+                    <View style={styles.conversationInfo}>
+                        <View style={styles.conversationHeader}>
+                            <Text style={styles.conversationName} numberOfLines={1}>
+                                {partner?.display_name || partner?.username || 'Unknown'}
+                            </Text>
+                            <Text style={[styles.timestamp, hasUnread && styles.unreadTimestamp]}>
+                                {formatTime(item.lastMessage.created_at)}
+                            </Text>
+                        </View>
+
+                        <View style={styles.messagePreview}>
+                            <Text
+                                style={[
+                                    styles.lastMessage,
+                                    hasUnread && styles.unreadMessageText
+                                ]}
+                                numberOfLines={1}
+                            >
+                                {item.lastMessage.content}
+                            </Text>
+                            {hasUnread && (
+                                <View style={styles.unreadBadge}>
+                                    <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </Card>
+            </TouchableOpacity >
         );
     };
 
-    if (isLoading) {
-        return (
-            <View style={[styles.loadingContainer, dynamicStyles.container]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-        );
-    }
-
     return (
-        <View style={[styles.container, dynamicStyles.container]}>
-            <StatusBar
-                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                backgroundColor={colors.background}
-            />
-
+        <ScreenContainer withScroll={false}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={[styles.headerTitle, dynamicStyles.text]}>Messages</Text>
+                <Text style={styles.headerTitle}>Messages</Text>
                 <TouchableOpacity
                     style={styles.settingsButton}
                     onPress={() => navigation.navigate('Settings')}
                 >
-                    <SettingsIcon size={24} color={colors.primary} />
+                    <SettingsIcon size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
             </View>
 
-            {/* Conversations List */}
-            <FlatList
-                data={conversations}
-                renderItem={renderConversation}
-                keyExtractor={(item) => item.partnerId}
-                contentContainerStyle={styles.listContainer}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isRefreshing}
-                        onRefresh={handleRefresh}
-                        tintColor={colors.primary}
-                    />
-                }
-                ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>💬</Text>
-                        <Text style={[styles.emptyTitle, dynamicStyles.text]}>No Messages Yet</Text>
-                        <Text style={[styles.emptyText, dynamicStyles.subText]}>
-                            Start a conversation with your friends
-                        </Text>
-                    </View>
-                }
-            />
-        </View>
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            ) : (
+                <FlatList
+                    data={conversations}
+                    renderItem={renderConversation}
+                    keyExtractor={(item) => item.partnerId}
+                    contentContainerStyle={styles.listContainer}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={colors.primary}
+                            colors={[colors.primary]}
+                        />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyIcon}>💬</Text>
+                            <Text style={styles.emptyTitle}>No Messages Yet</Text>
+                            <Text style={styles.emptyText}>
+                                Start a conversation with your friends to see them here.
+                            </Text>
+                        </View>
+                    }
+                />
+            )}
+        </ScreenContainer>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-    },
-    loadingContainer: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 16,
+        paddingVertical: layout.spacing.md,
+        marginBottom: layout.spacing.sm,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
+        fontFamily: typography.fontFamily.bold,
+        fontSize: typography.size.xl,
+        color: colors.textPrimary,
     },
     settingsButton: {
-        padding: 8,
+        padding: 4,
     },
-    listContainer: {
-        flexGrow: 1,
-        paddingHorizontal: 20,
-    },
-    conversationItem: {
-        flexDirection: 'row',
-        backgroundColor: '#16161e',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#2a2a3a',
-    },
-    avatar: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-    },
-    avatarPlaceholder: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: '#8b5cf620',
-        borderWidth: 2,
-        borderColor: '#8b5cf6',
+    loadingContainer: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    listContainer: {
+        paddingBottom: layout.spacing.xl,
+    },
+    conversationItem: {
+        flexDirection: 'row',
+        marginBottom: layout.spacing.md,
+        alignItems: 'center',
+        backgroundColor: colors.surface,
+    },
+    unreadItem: {
+        backgroundColor: colors.surfaceHighlight, // Slightly lighter for unread
+        borderColor: colors.border,
+        borderWidth: 1,
+    },
+    avatarContainer: {
+        marginRight: layout.spacing.md,
+    },
+    avatar: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: colors.surfaceHighlight,
+    },
+    avatarPlaceholder: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: colors.primary + '20', // Low opacity primary
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
     avatarText: {
         fontSize: 20,
-        fontWeight: 'bold',
-        color: '#8b5cf6',
+        fontFamily: typography.fontFamily.bold,
+        color: colors.primary,
     },
     conversationInfo: {
         flex: 1,
-        marginLeft: 12,
+        justifyContent: 'center',
     },
     conversationHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     conversationName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
+        fontSize: typography.size.md,
+        fontFamily: typography.fontFamily.semiBold,
+        color: colors.textPrimary,
+        flex: 1,
+        marginRight: 8,
     },
     timestamp: {
-        fontSize: 12,
-        color: '#666',
+        fontSize: 11,
+        fontFamily: typography.fontFamily.regular,
+        color: colors.textTertiary,
+    },
+    unreadTimestamp: {
+        color: colors.primary,
+        fontFamily: typography.fontFamily.medium,
     },
     messagePreview: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
     },
     lastMessage: {
         flex: 1,
-        fontSize: 14,
-        color: '#888',
+        fontSize: typography.size.sm,
+        fontFamily: typography.fontFamily.regular,
+        color: colors.textSecondary,
+        marginRight: 8,
     },
-    unreadMessage: {
-        color: '#fff',
-        fontWeight: '500',
+    unreadMessageText: {
+        color: colors.textPrimary,
+        fontFamily: typography.fontFamily.medium,
     },
     unreadBadge: {
-        backgroundColor: '#8b5cf6',
+        backgroundColor: colors.primary,
         borderRadius: 10,
         minWidth: 20,
         height: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 6,
-        marginLeft: 8,
+        paddingHorizontal: 5,
     },
     unreadCount: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontFamily: typography.fontFamily.bold,
     },
     emptyState: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 80,
+        marginTop: 60,
+        paddingHorizontal: 40,
     },
     emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
+        fontSize: 48,
+        marginBottom: layout.spacing.md,
+        opacity: 0.5,
     },
     emptyTitle: {
-        fontSize: 20,
-        fontWeight: '600',
-        color: '#fff',
-        marginBottom: 8,
+        fontSize: typography.size.lg,
+        fontFamily: typography.fontFamily.semiBold,
+        color: colors.textPrimary,
+        marginBottom: layout.spacing.sm,
     },
     emptyText: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: typography.size.md,
+        fontFamily: typography.fontFamily.regular,
+        color: colors.textSecondary,
         textAlign: 'center',
     },
 });

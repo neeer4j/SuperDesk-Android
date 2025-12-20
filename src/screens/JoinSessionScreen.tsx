@@ -2,21 +2,18 @@
 // Redesigned to use SessionManager for persistent sessions across tabs
 import React, { useState, useEffect } from 'react';
 import {
+    KeyboardAvoidingView,
+    Platform,
+    Alert,
+    Keyboard,
     View,
     Text,
     TextInput,
-    TouchableOpacity,
     StyleSheet,
-    StatusBar,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
-    Share,
-    Clipboard,
-    Keyboard,
 } from 'react-native';
-import { SettingsIcon } from '../components/Icons';
+import { layout, colors, typography } from '../theme/designSystem';
+import { ScreenContainer, Card, Button } from '../components/ui';
+import { SettingsIcon } from '../components/Icons'; // Using local icon instead of lucide for consistency if needed, or import standard
 import { sessionManager, SessionState } from '../services/SessionManager';
 import { webRTCService } from '../services/WebRTCService';
 import { socketService } from '../services/SocketService';
@@ -29,29 +26,26 @@ interface JoinSessionScreenProps {
 type JoinStatus = 'idle' | 'connecting' | 'joining' | 'connected' | 'error';
 
 const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => {
-    const { theme, colors } = useTheme();
+    // We stick to the designSystem values primarily
+    const { theme } = useTheme();
     const [sessionCode, setSessionCode] = useState('');
     const [status, setStatus] = useState<JoinStatus>('idle');
     const [error, setError] = useState<string | null>(null);
     const [hostConnected, setHostConnected] = useState(false);
 
     useEffect(() => {
-        // Initialize state from SessionManager - but verify socket is actually connected
         const state = sessionManager.getState();
         const isSocketConnected = socketService.isConnected();
 
-        // Only show connected state if socket is actually connected
         if (state.isActive && state.role === 'guest' && isSocketConnected) {
             setSessionCode(state.sessionId || '');
             setStatus('connected');
             setHostConnected(true);
         } else if (state.isActive && state.role === 'guest' && !isSocketConnected) {
-            // Stale state - socket disconnected but state persisted
             console.log('📱 Clearing stale session state - socket disconnected');
             sessionManager.endSession();
         }
 
-        // Subscribe to session state changes
         const unsubscribe = sessionManager.subscribe((newState: SessionState, prevState: SessionState) => {
             if (newState.role === 'guest') {
                 if (newState.isActive) {
@@ -60,14 +54,12 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
                     setHostConnected(true);
                 }
             } else if (newState.role === null && prevState.role === 'guest') {
-                // Session ended
                 setStatus('idle');
                 setSessionCode('');
                 setHostConnected(false);
             }
         });
 
-        // Listen for host disconnection
         const handleHostDisconnected = () => {
             Alert.alert('Host Disconnected', 'The host has ended the session.');
             setStatus('idle');
@@ -75,14 +67,12 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
         };
         sessionManager.on('hostDisconnected', handleHostDisconnected);
 
-        // Listen for session ended
         const handleSessionEnded = () => {
             setStatus('idle');
             setHostConnected(false);
         };
         sessionManager.on('sessionEnded', handleSessionEnded);
 
-        // Listen for errors
         const handleError = (errorMsg: string) => {
             setError(errorMsg);
             setStatus('error');
@@ -94,16 +84,12 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
             sessionManager.off('hostDisconnected', handleHostDisconnected);
             sessionManager.off('sessionEnded', handleSessionEnded);
             sessionManager.off('error', handleError);
-            // NOTE: We do NOT end the session on unmount anymore!
-            // Session persists across tab navigation
         };
     }, [navigation]);
 
     const handleCodeChange = (text: string) => {
-        // Remove any non-alphanumeric characters and convert to uppercase
         const cleaned = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
         setSessionCode(cleaned);
-        // Clear error when user starts typing
         if (error) {
             setError(null);
             setStatus('idle');
@@ -111,7 +97,6 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
     };
 
     const formatDisplayCode = (code: string) => {
-        // Format as XXXX-XXXX for display
         if (code.length > 4) {
             return code.slice(0, 4) + '-' + code.slice(4);
         }
@@ -128,12 +113,10 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
         setError(null);
 
         try {
-            // Join session
             await sessionManager.joinSession(sessionCode);
             console.log('✅ Joined session successfully');
             setStatus('connected');
 
-            // Initialize WebRTC to be ready for file transfer data channel
             try {
                 console.log('📱 Initializing WebRTC listener...');
                 await webRTCService.initialize('viewer', sessionCode);
@@ -141,13 +124,11 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
                 console.error('❌ Failed to init WebRTC:', err);
             }
 
-            // Reset input
             setSessionCode('');
-            Keyboard.dismiss(); // Dismiss keyboard on successful join
+            Keyboard.dismiss();
 
-            // Set a timeout for if no response
             setTimeout(() => {
-                if (status === 'joining') { // This condition might not be met if status is already 'connected'
+                if (status === 'joining') {
                     setError('Connection timed out. Please check the session code and try again.');
                     setStatus('error');
                 }
@@ -161,8 +142,6 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
     };
 
     const handleViewRemote = () => {
-        // Navigate to remote screen to view the host's screen
-        // Get sessionId from sessionManager since local state might be cleared
         const state = sessionManager.getState();
         const currentSessionId = state.sessionId || sessionCode;
 
@@ -196,395 +175,251 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
 
     const getButtonText = () => {
         switch (status) {
-            case 'connecting':
-                return 'Connecting...';
-            case 'joining':
-                return 'Joining...';
-            case 'connected':
-                return 'Connected';
-            default:
-                return 'Join Session';
+            case 'connecting': return 'Connecting...';
+            case 'joining': return 'Joining...';
+            default: return 'Join Session';
         }
     };
 
     const isButtonDisabled = sessionCode.length !== 8 || status === 'connecting' || status === 'joining' || status === 'connected';
 
-    // Dynamic styles based on theme
-    const dynamicStyles = {
-        container: {
-            backgroundColor: colors.background,
-        },
-        card: {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-            shadowColor: theme === 'light' ? '#000' : 'transparent',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: theme === 'light' ? 0.08 : 0,
-            shadowRadius: 8,
-            elevation: theme === 'light' ? 3 : 0,
-        },
-        connectedCard: {
-            borderColor: colors.success,
-        },
-        text: {
-            color: colors.text,
-        },
-        subText: {
-            color: colors.subText,
-        },
-        infoContainer: {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-        },
-        codeInput: {
-            backgroundColor: theme === 'dark' ? '#1e1e2e' : '#F0EDFA',
-            borderColor: theme === 'dark' ? '#3a3a4a' : colors.primary + '40',
-            color: colors.text,
-        },
-    };
-
     return (
-        <View style={[styles.container, dynamicStyles.container]}>
-            <StatusBar
-                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                backgroundColor={colors.background}
-            />
-
-            {/* Header with Settings */}
+        <ScreenContainer withScroll>
+            {/* Header */}
             <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <Text style={[styles.logo, { color: colors.text }]}>SuperDesk</Text>
-                </View>
-                <TouchableOpacity
-                    style={styles.settingsButton}
+                <Text style={styles.logo}>SuperDesk</Text>
+                <Button
+                    title=""
+                    variant="ghost"
+                    icon={<SettingsIcon size={24} color={colors.textSecondary} />}
                     onPress={() => navigation.navigate('Settings')}
-                >
-                    <SettingsIcon size={24} color={colors.primary} />
-                </TouchableOpacity>
+                    style={styles.settingsButton}
+                />
             </View>
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.content}
+                style={{ flex: 1 }}
             >
                 {status !== 'connected' ? (
                     <>
-                        {/* Join Session Card */}
-                        <View style={[styles.card, dynamicStyles.card]}>
-                            <Text style={[styles.cardTitle, dynamicStyles.text]}>Join Remote Session</Text>
-                            <Text style={[styles.cardDescription, dynamicStyles.subText]}>
-                                Enter the 8-character session code from the host to connect and view their screen
+                        <Card style={styles.mainCard}>
+                            <Text style={styles.cardTitle}>Join Remote Session</Text>
+                            <Text style={styles.cardSubtitle}>
+                                Enter the 8-character code to connect to a host.
                             </Text>
 
-                            <View style={styles.codeInputContainer}>
-                                <Text style={[styles.codeLabel, { color: colors.primary }]}>SESSION CODE</Text>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>SESSION CODE</Text>
                                 <TextInput
-                                    style={[
-                                        styles.codeInput,
-                                        dynamicStyles.codeInput,
-                                        error && { borderColor: colors.error },
-                                    ]}
+                                    style={styles.input}
                                     placeholder="XXXX-XXXX"
-                                    placeholderTextColor={colors.subText}
+                                    placeholderTextColor={colors.textTertiary}
                                     value={formatDisplayCode(sessionCode)}
                                     onChangeText={handleCodeChange}
-                                    maxLength={9} // 8 chars + hyphen
+                                    maxLength={9}
                                     autoCapitalize="characters"
                                     autoCorrect={false}
-                                    keyboardType="default"
-                                    editable={status !== 'connecting' && status !== 'joining'}
                                 />
-                                <Text style={[styles.codeHint, dynamicStyles.subText]}>
-                                    {sessionCode.length}/8 characters
-                                </Text>
+                                <Text style={styles.charCount}>{sessionCode.length}/8</Text>
                             </View>
 
                             {error && (
-                                <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
-                                    <Text style={[styles.errorText, { color: colors.error }]}>⚠️ {error}</Text>
+                                <View style={styles.errorContainer}>
+                                    <Text style={styles.errorText}>⚠️ {error}</Text>
                                 </View>
                             )}
 
-                            <TouchableOpacity
-                                style={[
-                                    styles.button,
-                                    styles.primaryButton,
-                                    { backgroundColor: colors.primary },
-                                    isButtonDisabled && styles.buttonDisabled,
-                                ]}
+                            <Button
+                                title={getButtonText()}
                                 onPress={handleJoinSession}
+                                loading={status === 'connecting' || status === 'joining'}
                                 disabled={isButtonDisabled}
-                            >
-                                {(status === 'connecting' || status === 'joining') ? (
-                                    <View style={styles.buttonContent}>
-                                        <ActivityIndicator size="small" color="#ffffff" />
-                                        <Text style={[styles.buttonText, { marginLeft: 10 }]}>
-                                            {getButtonText()}
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    <Text style={styles.buttonText}>{getButtonText()}</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
+                                style={styles.joinButton}
+                            />
+                        </Card>
 
-                        {/* Info */}
-                        <View style={[styles.infoContainer, dynamicStyles.infoContainer]}>
-                            <Text style={[styles.infoTitle, { color: colors.primary }]}>How to connect:</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>1. Ask the host for their 8-character session code</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>2. Enter the code above</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>3. Tap "Join Session" to connect</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>4. Press "View Remote" to see and control their screen</Text>
+                        <View style={styles.helpSection}>
+                            <Text style={styles.helpTitle}>HOW TO CONNECT</Text>
+                            <Text style={styles.helpText}>1. Ask the host for their 8-character code</Text>
+                            <Text style={styles.helpText}>2. Enter the code in the box above</Text>
+                            <Text style={styles.helpText}>3. Tap "Join Session" to start viewing</Text>
                         </View>
                     </>
                 ) : (
                     <>
-                        {/* Connected Card */}
-                        <View style={[styles.card, dynamicStyles.card, dynamicStyles.connectedCard]}>
-                            <View style={[styles.connectedBadge, { backgroundColor: colors.success + '20' }]}>
-                                <View style={[styles.connectedDot, { backgroundColor: colors.success }]} />
-                                <Text style={[styles.connectedBadgeText, { color: colors.success }]}>Connected to Session</Text>
+                        {/* Connected State */}
+                        <Card style={styles.connectedCard} variant="elevated">
+                            <View style={styles.connectedHeader}>
+                                <View style={styles.connectedIndicator} />
+                                <Text style={styles.connectedTitle}>Connected to Host</Text>
                             </View>
 
-                            <Text style={[styles.sessionLabel, dynamicStyles.subText]}>SESSION CODE</Text>
-                            <Text style={[styles.sessionCodeDisplay, dynamicStyles.text]}>{formatDisplayCode(sessionCode)}</Text>
-                            <Text style={[styles.connectedHint, dynamicStyles.subText]}>
-                                You're connected! Press "View Remote" to see and control the host's screen.
+                            <Text style={styles.connectedCode}>{formatDisplayCode(sessionCode)}</Text>
+                            <Text style={styles.connectedHint}>
+                                You are connected! Ready to view remote screen.
                             </Text>
 
-                            {/* View Remote Button */}
-                            <TouchableOpacity
-                                style={[styles.button, styles.viewRemoteButton, { backgroundColor: colors.success }]}
+                            <Button
+                                title="View Remote Screen"
+                                variant="primary"
+                                icon={<Text style={{ fontSize: 18, marginRight: 8, color: '#fff' }}>📺</Text>}
                                 onPress={handleViewRemote}
-                            >
-                                <Text style={styles.viewRemoteIcon}>🖥️</Text>
-                                <Text style={styles.viewRemoteText}>View Remote Screen</Text>
-                            </TouchableOpacity>
-                        </View>
+                                style={styles.viewButton}
+                            />
+                        </Card>
 
-                        {/* Disconnect Button */}
-                        <TouchableOpacity
-                            style={[styles.button, styles.disconnectButton, { borderColor: colors.error, backgroundColor: colors.error + '20' }]}
+                        <Button
+                            title="Disconnect"
+                            variant="danger"
                             onPress={handleDisconnect}
-                        >
-                            <Text style={[styles.disconnectButtonText, { color: colors.error }]}>Disconnect</Text>
-                        </TouchableOpacity>
-
-                        {/* Tips */}
-                        <View style={[styles.infoContainer, dynamicStyles.infoContainer]}>
-                            <Text style={[styles.infoTitle, { color: colors.primary }]}>💡 Tips:</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>• You can navigate to other tabs while connected</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>• Go to Files tab to transfer files with the host</Text>
-                            <Text style={[styles.infoText, dynamicStyles.subText]}>• Return here anytime to view their screen</Text>
-                        </View>
+                            style={styles.disconnectButton}
+                        />
                     </>
                 )}
             </KeyboardAvoidingView>
-        </View>
+        </ScreenContainer>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-        padding: 20,
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    headerLeft: {
-        flex: 1,
+        paddingVertical: layout.spacing.md,
+        marginBottom: layout.spacing.md,
     },
     logo: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#ffffff',
+        fontFamily: typography.fontFamily.bold,
+        fontSize: typography.size.xl,
+        color: colors.textPrimary,
     },
     settingsButton: {
-        padding: 8,
+        padding: 0,
+        height: 40,
+        width: 40,
     },
-    content: {
-        flex: 1,
-    },
-    card: {
-        backgroundColor: '#16161e',
-        borderRadius: 16,
-        padding: 24,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#2a2a3a',
-    },
-    connectedCard: {
-        borderColor: '#22c55e',
-        borderWidth: 2,
+    mainCard: {
+        marginBottom: layout.spacing.lg,
     },
     cardTitle: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: '#ffffff',
-        marginBottom: 8,
+        fontFamily: typography.fontFamily.semiBold,
+        fontSize: typography.size.lg,
+        color: colors.textPrimary,
+        marginBottom: layout.spacing.xs,
     },
-    cardDescription: {
-        fontSize: 14,
-        color: '#888',
-        marginBottom: 24,
-        lineHeight: 22,
+    cardSubtitle: {
+        fontFamily: typography.fontFamily.regular,
+        fontSize: typography.size.sm,
+        color: colors.textSecondary,
+        marginBottom: layout.spacing.xl,
     },
-    codeInputContainer: {
-        marginBottom: 20,
+    inputContainer: {
+        marginBottom: layout.spacing.lg,
     },
-    codeLabel: {
+    inputLabel: {
+        color: colors.primary,
         fontSize: 12,
-        fontWeight: '600',
-        color: '#8b5cf6',
-        marginBottom: 8,
-        letterSpacing: 1,
-    },
-    codeInput: {
-        backgroundColor: '#1e1e2e',
-        borderRadius: 12,
-        padding: 20,
-        fontSize: 32,
-        color: '#ffffff',
-        textAlign: 'center',
-        letterSpacing: 6,
         fontWeight: 'bold',
-        borderWidth: 2,
-        borderColor: '#3a3a4a',
+        letterSpacing: 1,
+        marginBottom: layout.spacing.sm,
     },
-    codeInputError: {
-        borderColor: '#ef4444',
-    },
-    codeHint: {
-        fontSize: 12,
-        color: '#666',
+    input: {
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: layout.borderRadius.md,
+        padding: layout.spacing.md,
+        color: colors.textPrimary,
+        fontFamily: typography.fontFamily.bold,
+        fontSize: 24,
         textAlign: 'center',
-        marginTop: 8,
+        letterSpacing: 4,
+    },
+    charCount: {
+        textAlign: 'right',
+        color: colors.textTertiary,
+        fontSize: 12,
+        marginTop: layout.spacing.xs,
     },
     errorContainer: {
-        backgroundColor: '#ef444420',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 16,
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        padding: layout.spacing.md,
+        borderRadius: layout.borderRadius.sm,
+        marginBottom: layout.spacing.md,
     },
     errorText: {
-        color: '#ef4444',
+        color: colors.error,
+        fontFamily: typography.fontFamily.medium,
+        fontSize: typography.size.sm,
+    },
+    joinButton: {
+        marginTop: layout.spacing.sm,
+    },
+    helpSection: {
+        padding: layout.spacing.md,
+    },
+    helpTitle: {
+        color: colors.textTertiary,
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginBottom: layout.spacing.md,
+    },
+    helpText: {
+        color: colors.textSecondary,
         fontSize: 14,
+        marginBottom: layout.spacing.sm,
     },
-    button: {
-        borderRadius: 12,
-        padding: 16,
+
+    // Connected Styles
+    connectedCard: {
         alignItems: 'center',
+        paddingVertical: layout.spacing.xl,
+        marginBottom: layout.spacing.lg,
+        borderColor: colors.success,
+        borderWidth: 1,
     },
-    primaryButton: {
-        backgroundColor: '#8b5cf6',
-    },
-    buttonDisabled: {
-        opacity: 0.5,
-    },
-    buttonContent: {
+    connectedHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    buttonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    connectedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#22c55e20',
+        marginBottom: layout.spacing.lg,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
-        alignSelf: 'flex-start',
-        marginBottom: 24,
     },
-    connectedDot: {
+    connectedIndicator: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#22c55e',
+        backgroundColor: colors.success,
         marginRight: 8,
     },
-    connectedBadgeText: {
-        color: '#22c55e',
-        fontWeight: '600',
+    connectedTitle: {
+        color: colors.success,
+        fontWeight: 'bold',
         fontSize: 14,
     },
-    sessionLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#888',
-        marginBottom: 8,
-        textAlign: 'center',
-        letterSpacing: 1,
-    },
-    sessionCodeDisplay: {
-        fontSize: 36,
+    connectedCode: {
+        color: colors.textPrimary,
+        fontSize: 32,
         fontWeight: 'bold',
-        color: '#ffffff',
-        textAlign: 'center',
-        letterSpacing: 4,
-        marginBottom: 16,
+        letterSpacing: 3,
+        marginBottom: layout.spacing.md,
     },
     connectedHint: {
-        fontSize: 14,
-        color: '#888',
+        color: colors.textSecondary,
         textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
+        marginBottom: layout.spacing.xl,
     },
-    viewRemoteButton: {
-        backgroundColor: '#22c55e',
-        flexDirection: 'row',
-        justifyContent: 'center',
-    },
-    viewRemoteIcon: {
-        fontSize: 20,
-        marginRight: 10,
-    },
-    viewRemoteText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
+    viewButton: {
+        width: '100%',
+        backgroundColor: colors.success,
     },
     disconnectButton: {
-        backgroundColor: '#ef444420',
-        borderWidth: 1,
-        borderColor: '#ef4444',
-        marginBottom: 20,
-    },
-    disconnectButtonText: {
-        color: '#ef4444',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    infoContainer: {
-        backgroundColor: '#16161e',
-        borderRadius: 12,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: '#2a2a3a',
-    },
-    infoTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#8b5cf6',
-        marginBottom: 12,
-    },
-    infoText: {
-        fontSize: 14,
-        color: '#888',
-        marginBottom: 8,
-        lineHeight: 20,
-    },
+        width: '100%',
+    }
 });
 
 export default JoinSessionScreen;

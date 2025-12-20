@@ -4,19 +4,19 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
     StyleSheet,
-    StatusBar,
     Share,
-    Clipboard,
     Alert,
     ActivityIndicator,
-    Platform,
+    ScrollView,
 } from 'react-native';
 import { SettingsIcon } from '../components/Icons';
 import { sessionManager, SessionState } from '../services/SessionManager';
 import { webRTCService } from '../services/WebRTCService';
 import { useTheme } from '../context/ThemeContext';
+import { ScreenContainer, Card, Button } from '../components/ui';
+import { colors, typography, layout } from '../theme/designSystem';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 interface HostSessionScreenProps {
     navigation: any;
@@ -25,7 +25,8 @@ interface HostSessionScreenProps {
 type ConnectionStatus = 'disconnected' | 'connecting' | 'session-active' | 'guest-connected';
 
 const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => {
-    const { theme, colors } = useTheme();
+    // We can still use useTheme for toggle logic if needed, but we rely on designSystem for values
+    const { theme } = useTheme();
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
     const [sessionCode, setSessionCode] = useState('');
     const [guestId, setGuestId] = useState<string | null>(null);
@@ -72,7 +73,7 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                     await webRTCService.initialize('host', data.sessionId);
 
                     // Wait a moment for initialization
-                    await new Promise(r => setTimeout(r, 500));
+                    await new Promise<void>(resolve => setTimeout(resolve, 500));
 
                     // Create offer to establish data channel
                     await webRTCService.createOffer();
@@ -107,8 +108,6 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
             sessionManager.off('guestJoined', handleGuestJoined);
             sessionManager.off('error', handleError);
             sessionManager.off('sessionEnded', handleSessionEnded);
-            // NOTE: We do NOT end the session on unmount anymore!
-            // Session persists across tab navigation
         };
     }, []);
 
@@ -143,7 +142,6 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
     };
 
     const handleShareScreen = () => {
-        // Navigate to Session screen which will request screen capture permission
         if (!guestId) {
             Alert.alert(
                 'No Guest Connected',
@@ -209,416 +207,306 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
 
     const isHosting = connectionStatus === 'session-active' || connectionStatus === 'guest-connected';
 
-    // Dynamic styles based on theme
-    const dynamicStyles = {
-        container: {
-            backgroundColor: colors.background,
-        },
-        card: {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-            shadowColor: theme === 'light' ? '#000' : 'transparent',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: theme === 'light' ? 0.08 : 0,
-            shadowRadius: 8,
-            elevation: theme === 'light' ? 3 : 0,
-        },
-        activeCard: {
-            borderColor: colors.success,
-        },
-        cardTitle: {
-            color: colors.text,
-        },
-        cardDescription: {
-            color: colors.subText,
-        },
-        text: {
-            color: colors.text,
-        },
-        subText: {
-            color: colors.subText,
-        },
-        infoContainer: {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-        },
-    };
-
     return (
-        <View style={[styles.container, dynamicStyles.container]}>
-            <StatusBar
-                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                backgroundColor={colors.background}
-            />
-
-            {/* Header with Settings */}
+        <ScreenContainer withScroll>
+            {/* Header */}
             <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <Text style={[styles.logo, { color: colors.text }]}>SuperDesk</Text>
-                </View>
-                <TouchableOpacity
-                    style={styles.settingsButton}
+                <Text style={styles.logo}>SuperDesk</Text>
+                <Button
+                    title=""
+                    variant="ghost"
+                    icon={<SettingsIcon size={24} color={colors.textSecondary} />}
                     onPress={() => navigation.navigate('Settings')}
-                >
-                    <SettingsIcon size={24} color={colors.primary} />
-                </TouchableOpacity>
+                    style={styles.settingsButton}
+                />
             </View>
 
             {!isHosting ? (
                 <>
                     {/* Host Session Card */}
-                    <View style={[styles.card, dynamicStyles.card]}>
-                        <Text style={[styles.cardTitle, dynamicStyles.cardTitle]}>Host Session</Text>
-                        <Text style={[styles.cardDescription, dynamicStyles.cardDescription]}>
-                            Share your phone screen with a PC. Generate a session code that others can use to connect.
+                    <Card style={styles.mainCard}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.iconContainer}>
+                                <Text style={styles.iconText}>📡</Text>
+                            </View>
+                            <View>
+                                <Text style={styles.cardTitle}>Host Session</Text>
+                                <Text style={styles.cardSubtitle}>Share your screen with others</Text>
+                            </View>
+                        </View>
+
+                        <Text style={styles.cardDescription}>
+                            Generate a secure session code to share your screen with PC viewer.
                         </Text>
 
                         {error && (
-                            <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
-                                <Text style={[styles.errorText, { color: colors.error }]}>⚠️ {error}</Text>
+                            <View style={styles.errorContainer}>
+                                <Text style={styles.errorText}>⚠️ {error}</Text>
                             </View>
                         )}
 
-                        <TouchableOpacity
-                            style={[
-                                styles.button,
-                                styles.primaryButton,
-                                { backgroundColor: colors.primary },
-                                connectionStatus === 'connecting' && styles.buttonDisabled,
-                            ]}
+                        <Button
+                            title={connectionStatus === 'connecting' ? 'Connecting...' : 'Start Hosting'}
                             onPress={handleStartHosting}
-                            disabled={connectionStatus === 'connecting'}
-                        >
-                            {connectionStatus === 'connecting' ? (
-                                <View style={styles.buttonContent}>
-                                    <ActivityIndicator size="small" color="#ffffff" />
-                                    <Text style={[styles.buttonText, { marginLeft: 10 }]}>
-                                        Connecting...
-                                    </Text>
-                                </View>
-                            ) : (
-                                <Text style={styles.buttonText}>Start Hosting</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                            loading={connectionStatus === 'connecting'}
+                            style={styles.hostButton}
+                        />
+                    </Card>
 
-                    {/* Info */}
-                    <View style={[styles.infoContainer, dynamicStyles.infoContainer]}>
-                        <Text style={[styles.infoTitle, { color: colors.primary }]}>How it works:</Text>
-                        <Text style={[styles.infoText, dynamicStyles.subText]}>1. Tap "Start Hosting" to generate a session code</Text>
-                        <Text style={[styles.infoText, dynamicStyles.subText]}>2. Share the code with someone you trust</Text>
-                        <Text style={[styles.infoText, dynamicStyles.subText]}>3. Press "Share Screen" when they connect</Text>
-                        <Text style={[styles.infoText, dynamicStyles.subText]}>4. You can navigate to other tabs while session is active</Text>
+                    {/* How it works */}
+                    <View style={styles.infoSection}>
+                        <Text style={styles.sectionTitle}>HOW IT WORKS</Text>
+
+                        <Card variant="outlined" style={styles.infoCard}>
+                            <View style={styles.stepRow}>
+                                <View style={styles.stepBadge}><Text style={styles.stepText}>1</Text></View>
+                                <Text style={styles.stepDesc}>Tap "Start Hosting" to get a code</Text>
+                            </View>
+                            <View style={styles.stepRow}>
+                                <View style={styles.stepBadge}><Text style={styles.stepText}>2</Text></View>
+                                <Text style={styles.stepDesc}>Share code with the viewer</Text>
+                            </View>
+                            <View style={styles.stepRow}>
+                                <View style={styles.stepBadge}><Text style={styles.stepText}>3</Text></View>
+                                <Text style={styles.stepDesc}>Approve screen share request</Text>
+                            </View>
+                        </Card>
                     </View>
                 </>
             ) : (
                 <>
-                    {/* Session Active Card */}
-                    <View style={[styles.card, dynamicStyles.card, dynamicStyles.activeCard]}>
-                        <View style={[styles.statusBadge, { backgroundColor: colors.success + '20' }]}>
+                    {/* Active Session Card */}
+                    <Card style={styles.activeCard}>
+                        <View style={styles.statusHeader}>
                             <View style={[
                                 styles.statusDot,
-                                { backgroundColor: connectionStatus === 'guest-connected' ? '#22c55e' : colors.success }
+                                { backgroundColor: connectionStatus === 'guest-connected' ? colors.success : colors.warning }
                             ]} />
-                            <Text style={[styles.statusBadgeText, { color: colors.success }]}>
-                                {connectionStatus === 'guest-connected' ? 'Guest Connected' : 'Session Active'}
+                            <Text style={styles.statusText}>
+                                {connectionStatus === 'guest-connected' ? 'Guest Connected' : 'Waiting for Guest'}
                             </Text>
                         </View>
 
-                        <Text style={[styles.sessionLabel, dynamicStyles.subText]}>Your Session Code</Text>
-                        <Text style={[styles.sessionCode, dynamicStyles.text]}>{formatCode(sessionCode)}</Text>
-                        <Text style={[styles.sessionHint, dynamicStyles.subText]}>
-                            {connectionStatus === 'guest-connected'
-                                ? 'Press "Share Screen" to start sharing'
-                                : 'Share this code with the person who will connect'}
-                        </Text>
+                        <View style={styles.codeContainer}>
+                            <Text style={styles.codeLabel}>SESSION CODE</Text>
+                            <Text style={styles.codeValue}>{formatCode(sessionCode)}</Text>
+                        </View>
 
-                        {/* Action Buttons */}
-                        <View style={styles.actionButtons}>
-                            <TouchableOpacity
-                                style={[styles.actionButton, styles.refreshButton, { borderColor: '#f59e0b' }]}
-                                onPress={handleRefreshCode}
-                            >
-                                <Text style={styles.actionButtonIcon}>🔄</Text>
-                                <Text style={[styles.actionButtonText, { color: colors.text }]}>New Code</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.actionButton, { backgroundColor: colors.border }]}
+                        <View style={styles.actionGrid}>
+                            <Button
+                                title="Copy"
+                                variant="secondary"
+                                size="sm"
                                 onPress={handleCopyCode}
-                            >
-                                <Text style={styles.actionButtonIcon}>📋</Text>
-                                <Text style={[styles.actionButtonText, { color: colors.text }]}>Copy</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                                style={styles.actionButton}
+                            />
+                            <Button
+                                title="Share"
+                                size="sm"
                                 onPress={handleShareCode}
-                            >
-                                <Text style={styles.actionButtonIcon}>📤</Text>
-                                <Text style={styles.actionButtonText}>Share</Text>
-                            </TouchableOpacity>
+                                style={styles.actionButton}
+                            />
                         </View>
-                    </View>
 
-                    {/* Share Screen Button - Only shown when guest is connected */}
-                    {connectionStatus === 'guest-connected' && (
-                        <TouchableOpacity
-                            style={[styles.button, styles.shareScreenButton]}
-                            onPress={handleShareScreen}
-                        >
-                            <Text style={styles.shareScreenIcon}>📺</Text>
-                            <Text style={styles.shareScreenText}>
-                                {isScreenSharing ? 'Return to Screen Share' : 'Share Screen'}
-                            </Text>
-                        </TouchableOpacity>
-                    )}
+                        {connectionStatus === 'guest-connected' && (
+                            <Button
+                                title={isScreenSharing ? "Return to Stream" : "Share Screen"}
+                                variant="primary"
+                                onPress={handleShareScreen}
+                                style={{ marginTop: 16, backgroundColor: colors.success }}
+                            />
+                        )}
+                    </Card>
 
-                    {/* Stop Button */}
-                    <TouchableOpacity
-                        style={[styles.button, styles.stopButton, { borderColor: colors.error, backgroundColor: colors.error + '20' }]}
+                    <Button
+                        title="End Session"
+                        variant="danger"
                         onPress={handleStopHosting}
-                    >
-                        <Text style={[styles.stopButtonText, { color: colors.error }]}>End Session</Text>
-                    </TouchableOpacity>
+                        style={styles.endButton}
+                    />
 
-                    {/* Status */}
-                    <View style={styles.waitingContainer}>
+                    <View style={styles.statusFooter}>
+                        <Text style={styles.footerText}>{getStatusText()}</Text>
                         {connectionStatus === 'session-active' && (
-                            <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: 10 }} />
-                        )}
-                        <Text style={[styles.waitingText, dynamicStyles.subText]}>{getStatusText()}</Text>
-                        {connectionStatus === 'session-active' && (
-                            <Text style={[styles.waitingHint, dynamicStyles.subText]}>
-                                The other person should enter this code in "Join Session"
-                            </Text>
-                        )}
-                        {connectionStatus === 'guest-connected' && !isScreenSharing && (
-                            <Text style={[styles.waitingHint, dynamicStyles.subText]}>
-                                Tap "Share Screen" above to start sharing your screen
-                            </Text>
+                            <ActivityIndicator size="small" color={colors.textTertiary} style={{ marginTop: 8 }} />
                         )}
                     </View>
                 </>
             )}
-        </View>
+        </ScreenContainer>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-        padding: 20,
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    headerLeft: {
-        flex: 1,
+        paddingVertical: layout.spacing.md,
+        marginBottom: layout.spacing.md,
     },
     logo: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#ffffff',
+        fontFamily: typography.fontFamily.bold,
+        fontSize: typography.size.xl,
+        color: colors.textPrimary,
     },
     settingsButton: {
-        padding: 8,
+        padding: 0,
+        height: 40,
+        width: 40,
     },
-    card: {
-        backgroundColor: '#16161e',
-        borderRadius: 16,
-        padding: 24,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#2a2a3a',
+    mainCard: {
+        marginBottom: layout.spacing.lg,
     },
-    activeCard: {
-        borderColor: '#10b981',
-        borderWidth: 2,
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: layout.spacing.md,
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: layout.borderRadius.md,
+        backgroundColor: colors.surfaceHighlight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: layout.spacing.md,
+    },
+    iconText: {
+        fontSize: 24,
     },
     cardTitle: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: '#ffffff',
-        marginBottom: 8,
+        fontFamily: typography.fontFamily.semiBold,
+        fontSize: typography.size.lg,
+        color: colors.textPrimary,
+    },
+    cardSubtitle: {
+        fontFamily: typography.fontFamily.regular,
+        fontSize: typography.size.sm,
+        color: colors.textSecondary,
     },
     cardDescription: {
-        fontSize: 14,
-        color: '#888',
-        marginBottom: 24,
-        lineHeight: 22,
+        fontFamily: typography.fontFamily.regular,
+        fontSize: typography.size.md,
+        color: colors.textSecondary,
+        marginBottom: layout.spacing.lg,
+        lineHeight: typography.lineHeight.md,
     },
     errorContainer: {
-        backgroundColor: '#ef444420',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 16,
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        padding: layout.spacing.md,
+        borderRadius: layout.borderRadius.sm,
+        marginBottom: layout.spacing.md,
     },
     errorText: {
-        color: '#ef4444',
-        fontSize: 14,
+        color: colors.error,
+        fontFamily: typography.fontFamily.medium,
+        fontSize: typography.size.sm,
     },
-    button: {
+    hostButton: {
+        width: '100%',
+    },
+    infoSection: {
+        marginTop: layout.spacing.md,
+    },
+    sectionTitle: {
+        fontFamily: typography.fontFamily.bold,
+        fontSize: typography.size.xs,
+        color: colors.textTertiary,
+        letterSpacing: 1,
+        marginBottom: layout.spacing.sm,
+    },
+    infoCard: {
+        padding: layout.spacing.md,
+    },
+    stepRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: layout.spacing.md,
+    },
+    stepBadge: {
+        width: 24,
+        height: 24,
         borderRadius: 12,
-        padding: 16,
-        alignItems: 'center',
-    },
-    primaryButton: {
-        backgroundColor: '#8b5cf6',
-    },
-    buttonDisabled: {
-        opacity: 0.7,
-    },
-    buttonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    shareScreenButton: {
-        backgroundColor: '#22c55e',
-        flexDirection: 'row',
+        backgroundColor: colors.surfaceHighlight,
         justifyContent: 'center',
-        marginBottom: 12,
+        alignItems: 'center',
+        marginRight: layout.spacing.md,
     },
-    shareScreenIcon: {
-        fontSize: 20,
-        marginRight: 10,
+    stepText: {
+        color: colors.textPrimary,
+        fontSize: 12,
+        fontWeight: 'bold',
     },
-    shareScreenText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    stopButton: {
-        backgroundColor: '#ef444420',
-        borderWidth: 1,
-        borderColor: '#ef4444',
-        marginBottom: 20,
-    },
-    buttonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    stopButtonText: {
-        color: '#ef4444',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    infoContainer: {
-        backgroundColor: '#16161e',
-        borderRadius: 12,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: '#2a2a3a',
-    },
-    infoTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#8b5cf6',
-        marginBottom: 12,
-    },
-    infoText: {
+    stepDesc: {
+        color: colors.textSecondary,
         fontSize: 14,
-        color: '#888',
-        marginBottom: 8,
-        lineHeight: 20,
     },
-    statusBadge: {
+
+    // Active session styles
+    activeCard: {
+        borderColor: colors.primary,
+        borderWidth: 1,
+        marginBottom: layout.spacing.lg,
+    },
+    statusHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#10b98120',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
+        marginBottom: layout.spacing.lg,
+        backgroundColor: colors.surfaceHighlight,
+        padding: layout.spacing.sm,
+        borderRadius: layout.borderRadius.full,
         alignSelf: 'flex-start',
-        marginBottom: 24,
     },
     statusDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#10b981',
         marginRight: 8,
+        marginLeft: 4,
     },
-    statusBadgeText: {
-        color: '#10b981',
+    statusText: {
+        color: colors.textPrimary,
+        fontSize: 12,
         fontWeight: '600',
-        fontSize: 14,
+        marginRight: 4,
     },
-    sessionLabel: {
-        fontSize: 14,
-        color: '#888',
-        marginBottom: 8,
-        textAlign: 'center',
+    codeContainer: {
+        alignItems: 'center',
+        paddingVertical: layout.spacing.xl,
     },
-    sessionCode: {
-        fontSize: 42,
+    codeLabel: {
+        color: colors.primary,
+        fontSize: 12,
+        letterSpacing: 2,
         fontWeight: 'bold',
-        color: '#ffffff',
-        textAlign: 'center',
+        marginBottom: layout.spacing.xs,
+    },
+    codeValue: {
+        color: colors.textPrimary,
+        fontSize: 40,
+        fontFamily: typography.fontFamily.bold,
         letterSpacing: 4,
-        marginBottom: 8,
     },
-    sessionHint: {
-        fontSize: 13,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 24,
-    },
-    actionButtons: {
+    actionGrid: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        gap: 10,
+        gap: layout.spacing.md,
+        marginTop: layout.spacing.md,
     },
     actionButton: {
-        flexDirection: 'row',
+        flex: 1,
+    },
+    endButton: {
+        marginTop: 'auto',
+    },
+    statusFooter: {
+        marginTop: layout.spacing.xl,
         alignItems: 'center',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 10,
-        minWidth: 85,
-        justifyContent: 'center',
     },
-    copyButton: {
-        backgroundColor: '#2a2a3a',
-    },
-    refreshButton: {
-        backgroundColor: '#f59e0b30',
-        borderWidth: 1,
-        borderColor: '#f59e0b',
-    },
-    shareCodeButton: {
-        backgroundColor: '#8b5cf6',
-    },
-    actionButtonIcon: {
-        fontSize: 18,
-        marginRight: 8,
-    },
-    actionButtonText: {
-        color: '#ffffff',
-        fontWeight: '600',
+    footerText: {
+        color: colors.textTertiary,
         fontSize: 14,
-    },
-    waitingContainer: {
-        alignItems: 'center',
-        paddingVertical: 30,
-    },
-    waitingText: {
-        fontSize: 16,
-        color: '#888',
-        marginBottom: 8,
-    },
-    waitingHint: {
-        fontSize: 13,
-        color: '#666',
-        textAlign: 'center',
-    },
+    }
 });
 
 export default HostSessionScreen;

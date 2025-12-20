@@ -1,0 +1,718 @@
+Initialized native services in: C:\Users\neera\.gradle\native
+Initialized jansi services in: C:\Users\neera\.gradle\native
+The client will now receive all logging from the daemon (pid: 16240). The daemon log file: C:\Users\neera\.gradle\daemon\8.13\daemon-16240.out.log
+Starting 31st build in daemon [uptime: 1 hrs 23 mins 37.415 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 2 GiB, non-heap usage: 59% of 512 MiB]
+Using 16 worker leases.
+Now considering [C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android, C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Now considering [C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin, C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android] as hierarchies to watch
+Resolved plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '0.5.0']
+
+> Configure project :gradle-plugin
+Evaluating project ':gradle-plugin' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25', apply: false]
+Resolved plugin [id: 'java-gradle-plugin']
+
+> Configure project :gradle-plugin:react-native-gradle-plugin
+Evaluating project ':gradle-plugin:react-native-gradle-plugin' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin\react-native-gradle-plugin\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25']
+Resolved plugin [id: 'java-gradle-plugin']
+Using Kotlin Gradle Plugin gradle82 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+
+> Configure project :gradle-plugin:settings-plugin
+Evaluating project ':gradle-plugin:settings-plugin' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin\settings-plugin\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25']
+Resolved plugin [id: 'java-gradle-plugin']
+Using Kotlin Gradle Plugin gradle82 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+
+> Configure project :gradle-plugin:shared
+Evaluating project ':gradle-plugin:shared' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin\shared\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25']
+Using Kotlin Gradle Plugin gradle82 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+
+> Configure project :gradle-plugin:shared-testutil
+Evaluating project ':gradle-plugin:shared-testutil' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin\shared-testutil\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25']
+Using Kotlin Gradle Plugin gradle82 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Resolved plugin [id: 'com.facebook.react.settings']
+Resolved plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '0.8.0']
+Resolve mutations for :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
+:gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors
+Caching disabled for task ':gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors' because:
+  Build cache is disabled
+Task ':gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors
+Caching disabled for task ':gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors' because:
+  Build cache is disabled
+Task ':gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :gradle-plugin:shared:compileKotlin (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:shared:compileKotlin (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+Caching disabled for task ':gradle-plugin:shared:compileKotlin' because:
+  Build cache is disabled
+Skipping task ':gradle-plugin:shared:compileKotlin' as it is up-to-date.
+Resolve mutations for :gradle-plugin:shared:compileJava (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:shared:compileJava (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+Skipping task ':gradle-plugin:shared:compileJava' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:shared:processResources (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:shared:processResources (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+Skipping task ':gradle-plugin:shared:processResources' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:shared:classes (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:shared:classes (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+Skipping task ':gradle-plugin:shared:classes' as it has no actions.
+Resolve mutations for :gradle-plugin:shared:jar (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:shared:jar (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+Caching disabled for task ':gradle-plugin:shared:jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:shared:jar' as it is up-to-date.
+work action resolve shared.jar (project :gradle-plugin:shared) (Thread[Execution worker Thread 5,5,main]) started.
+Resolve mutations for :gradle-plugin:settings-plugin:compileKotlin (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:settings-plugin:compileKotlin (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:compileKotlin' because:
+  Build cache is disabled
+Skipping task ':gradle-plugin:settings-plugin:compileKotlin' as it is up-to-date.
+Resolve mutations for :gradle-plugin:settings-plugin:compileJava (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:settings-plugin:compileJava (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+Skipping task ':gradle-plugin:settings-plugin:compileJava' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:settings-plugin:pluginDescriptors (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:settings-plugin:pluginDescriptors (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:pluginDescriptors' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:settings-plugin:pluginDescriptors' as it is up-to-date.
+Resolve mutations for :gradle-plugin:settings-plugin:processResources (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:settings-plugin:processResources (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:processResources' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:settings-plugin:processResources' as it is up-to-date.
+Resolve mutations for :gradle-plugin:settings-plugin:classes (Thread[Execution worker Thread 5,5,main]) started.
+:gradle-plugin:settings-plugin:classes (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+Skipping task ':gradle-plugin:settings-plugin:classes' as it has no actions.
+Resolve mutations for :gradle-plugin:settings-plugin:jar (Thread[Execution worker Thread 15,5,main]) started.
+:gradle-plugin:settings-plugin:jar (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:settings-plugin:jar' as it is up-to-date.
+Settings evaluated using settings file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android\settings.gradle'.
+Projects loaded. Root project using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android\build.gradle'.
+Included projects: [root project 'SuperDeskMobile', project ':app', project ':react-native-async-storage_async-storage', project ':react-native-clipboard_clipboard', project ':react-native-document-picker', project ':react-native-fs', project ':react-native-gesture-handler', project ':react-native-linear-gradient', project ':react-native-reanimated', project ':react-native-safe-area-context', project ':react-native-screens', project ':react-native-svg', project ':react-native-webrtc']
+Registering project ':gradle-plugin' in composite build. Will substitute for module ':gradle-plugins-root'.
+Registering project ':gradle-plugin:react-native-gradle-plugin' in composite build. Will substitute for module 'com.facebook.react:react-native-gradle-plugin'.
+Registering project ':gradle-plugin:settings-plugin' in composite build. Will substitute for module 'com.facebook.react:settings-plugin'.
+Registering project ':gradle-plugin:shared' in composite build. Will substitute for module 'com.facebook.react:shared'.
+Registering project ':gradle-plugin:shared-testutil' in composite build. Will substitute for module 'com.facebook.react:shared-testutil'.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 13,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors' because:
+  Build cache is disabled
+Task ':gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:compileKotlin (Thread[Execution worker Thread 13,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:compileKotlin (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:compileKotlin' because:
+  Build cache is disabled
+Skipping task ':gradle-plugin:react-native-gradle-plugin:compileKotlin' as it is up-to-date.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:compileJava (Thread[Execution worker Thread 13,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:compileJava (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+Skipping task ':gradle-plugin:react-native-gradle-plugin:compileJava' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:pluginDescriptors (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:pluginDescriptors' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:react-native-gradle-plugin:pluginDescriptors' as it is up-to-date.
+
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:processResources' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:react-native-gradle-plugin:processResources' as it is up-to-date.
+
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+Skipping task ':gradle-plugin:react-native-gradle-plugin:classes' as it has no actions.
+
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:react-native-gradle-plugin:jar' as it is up-to-date.
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android\app\build.gradle'.
+Using default execution profile
+Using Kotlin Gradle Plugin gradle82 variant
+
+> Configure project :
+Evaluating root project 'SuperDeskMobile' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android\build.gradle'.
+Found project 'project :gradle-plugin:react-native-gradle-plugin' as substitute for module 'com.facebook.react:react-native-gradle-plugin'.
+Ignoring listeners of task graph ready event, as this build (:gradle-plugin) has already executed work.
+:gradle-plugin:react-native-gradle-plugin:pluginDescriptors (Thread[included builds,5,main]) started.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:processResources (Thread[included builds,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:processResources (Thread[included builds,5,main]) started.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:classes (Thread[included builds,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:classes (Thread[included builds,5,main]) started.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:jar (Thread[included builds,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:jar (Thread[included builds,5,main]) started.
+
+> Configure project :react-native-async-storage_async-storage
+Evaluating project ':react-native-async-storage_async-storage' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native-async-storage\async-storage\android\build.gradle'.
+Using default execution profile
+[AsyncStorage] Config used: {kotlinVersion=1.9.24, kspVersion=1.9.24-1.0.20, roomVersion=2.6.1, minSdkVersion=24, targetSdkVersion=34, compileSdkVersion=34, useNextStorage=false, databaseSizeMB=6, isNewArchitectureEnabled=false, useDedicatedExecutor=false}
+
+> Configure project :react-native-clipboard_clipboard
+Evaluating project ':react-native-clipboard_clipboard' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native-clipboard\clipboard\android\build.gradle'.
+Using default execution profile
+
+> Configure project :react-native-document-picker
+Evaluating project ':react-native-document-picker' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-document-picker\android\build.gradle'.
+Using default execution profile
+
+> Configure project :react-native-fs
+Evaluating project ':react-native-fs' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-fs\android\build.gradle'.
+Using default execution profile
+
+> Configure project :react-native-gesture-handler
+Evaluating project ':react-native-gesture-handler' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-gesture-handler\android\build.gradle'.
+Using default execution profile
+Using Kotlin Gradle Plugin gradle82 variant
+Starting process 'command 'node''. Working directory: C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android Command: node --print require.resolve('react-native/package.json')
+Successfully started process 'command 'node''
+
+> Configure project :react-native-linear-gradient
+Evaluating project ':react-native-linear-gradient' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-linear-gradient\android\build.gradle'.
+Using default execution profile
+
+> Configure project :react-native-reanimated
+Evaluating project ':react-native-reanimated' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-reanimated\android\build.gradle'.
+Using default execution profile
+Android gradle plugin: 8.7.3
+Gradle: 8.13
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+
+> Configure project :react-native-safe-area-context
+Evaluating project ':react-native-safe-area-context' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-safe-area-context\android\build.gradle'.
+Using default execution profile
+Using Kotlin Gradle Plugin gradle82 variant
+
+> Configure project :react-native-screens
+Evaluating project ':react-native-screens' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-screens\android\build.gradle'.
+Using default execution profile
+Using Kotlin Gradle Plugin gradle82 variant
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Users\neera\AppData\Local\Android\Sdk
+
+> Configure project :react-native-svg
+Evaluating project ':react-native-svg' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-svg\android\build.gradle'.
+Using default execution profile
+Starting process 'command 'node''. Working directory: C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android Command: node --print require.resolve('react-native/package.json')
+Successfully started process 'command 'node''
+Starting process 'command 'node''. Working directory: C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android Command: node --print require.resolve('react-native/package.json')
+Successfully started process 'command 'node''
+
+> Configure project :react-native-webrtc
+Evaluating project ':react-native-webrtc' using build file 'C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\react-native-webrtc\android\build.gradle'.
+Using default execution profile
+All projects evaluated.
+Found project 'project :gradle-plugin:react-native-gradle-plugin' as substitute for module 'com.facebook.react:react-native-gradle-plugin'.
+Task name matched 'checkDebugAarMetadata'
+Selected primary task 'checkDebugAarMetadata' from project :
+Tasks to be executed: [task ':app:generateAutolinkingPackageList', task ':app:generateCodegenSchemaFromJavaScript', task ':app:generateCodegenArtifactsFromSchema', task ':app:preBuild', task ':app:preDebugBuild', task ':react-native-async-storage_async-storage:preBuild', task ':react-native-async-storage_async-storage:preDebugBuild', task ':react-native-async-storage_async-storage:writeDebugAarMetadata', task ':react-native-clipboard_clipboard:preBuild', task ':react-native-clipboard_clipboard:preDebugBuild', task ':react-native-clipboard_clipboard:writeDebugAarMetadata', task ':react-native-document-picker:preBuild', task ':react-native-document-picker:preDebugBuild', task ':react-native-document-picker:writeDebugAarMetadata', task ':react-native-fs:preBuild', task ':react-native-fs:preDebugBuild', task ':react-native-fs:writeDebugAarMetadata', task ':react-native-gesture-handler:preBuild', task ':react-native-gesture-handler:preDebugBuild', task ':react-native-gesture-handler:writeDebugAarMetadata', task ':react-native-linear-gradient:preBuild', task ':react-native-linear-gradient:preDebugBuild', task ':react-native-linear-gradient:writeDebugAarMetadata', task ':react-native-reanimated:assertLatestReactNativeWithNewArchitectureTask', task ':react-native-reanimated:assertMinimalReactNativeVersionTask', task ':react-native-reanimated:prepareHeadersForPrefab', task ':react-native-reanimated:preBuild', task ':react-native-reanimated:preDebugBuild', task ':react-native-reanimated:writeDebugAarMetadata', task ':react-native-safe-area-context:preBuild', task ':react-native-safe-area-context:preDebugBuild', task ':react-native-safe-area-context:writeDebugAarMetadata', task ':react-native-screens:preBuild', task ':react-native-screens:preDebugBuild', task ':react-native-screens:writeDebugAarMetadata', task ':react-native-svg:preBuild', task ':react-native-svg:preDebugBuild', task ':react-native-svg:writeDebugAarMetadata', task ':react-native-webrtc:preBuild', task ':react-native-webrtc:preDebugBuild', task ':react-native-webrtc:writeDebugAarMetadata', task ':app:checkDebugAarMetadata']
+Tasks that were excluded: []
+Resolve mutations for :app:generateAutolinkingPackageList (Thread[Execution worker Thread 12,5,main]) started.
+:app:generateAutolinkingPackageList (Thread[Execution worker Thread 12,5,main]) started.
+
+> Task :app:generateAutolinkingPackageList UP-TO-DATE
+Caching disabled for task ':app:generateAutolinkingPackageList' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':app:generateAutolinkingPackageList' as it is up-to-date.
+Resolve mutations for :app:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 12,5,main]) started.
+:app:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 12,5,main]) started.
+
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+Skipping task ':app:generateCodegenSchemaFromJavaScript' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :app:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 15,5,main]) started.
+:app:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+Skipping task ':app:generateCodegenArtifactsFromSchema' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :app:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+:app:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+:app:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-async-storage_async-storage:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-async-storage_async-storage:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-async-storage_async-storage:preBuild UP-TO-DATE
+Skipping task ':react-native-async-storage_async-storage:preBuild' as it has no actions.
+Resolve mutations for :react-native-async-storage_async-storage:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-async-storage_async-storage:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-async-storage_async-storage:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-async-storage_async-storage:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-async-storage_async-storage:writeDebugAarMetadata (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-async-storage_async-storage:writeDebugAarMetadata (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-async-storage_async-storage:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-async-storage_async-storage:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-async-storage_async-storage:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-async-storage_async-storage) (Thread[Execution worker Thread 15,5,main]) started.
+Resolve mutations for :react-native-clipboard_clipboard:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-clipboard_clipboard:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-clipboard_clipboard:preBuild UP-TO-DATE
+Skipping task ':react-native-clipboard_clipboard:preBuild' as it has no actions.
+Resolve mutations for :react-native-clipboard_clipboard:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-clipboard_clipboard:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-clipboard_clipboard:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-clipboard_clipboard:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-clipboard_clipboard:writeDebugAarMetadata (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-clipboard_clipboard:writeDebugAarMetadata (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-clipboard_clipboard:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-clipboard_clipboard:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-clipboard_clipboard:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-clipboard_clipboard) (Thread[Execution worker Thread 15,5,main]) started.
+Resolve mutations for :react-native-document-picker:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-document-picker:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-document-picker:preBuild UP-TO-DATE
+Skipping task ':react-native-document-picker:preBuild' as it has no actions.
+Resolve mutations for :react-native-document-picker:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-document-picker:preDebugBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-document-picker:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-document-picker:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-document-picker:writeDebugAarMetadata (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-document-picker:writeDebugAarMetadata (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-document-picker:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-document-picker:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-document-picker:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-document-picker) (Thread[Execution worker Thread 15,5,main]) started.
+Resolve mutations for :react-native-fs:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+:react-native-fs:preBuild (Thread[Execution worker Thread 15,5,main]) started.
+
+> Task :react-native-fs:preBuild UP-TO-DATE
+Skipping task ':react-native-fs:preBuild' as it has no actions.
+Resolve mutations for :react-native-fs:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fs:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fs:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-fs:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-fs:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fs:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fs:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-fs:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-fs:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-fs) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :react-native-gesture-handler:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-gesture-handler:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-gesture-handler:preBuild UP-TO-DATE
+Skipping task ':react-native-gesture-handler:preBuild' as it has no actions.
+Resolve mutations for :react-native-gesture-handler:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-gesture-handler:preDebugBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-gesture-handler:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-gesture-handler:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-gesture-handler:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-gesture-handler:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-gesture-handler:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-gesture-handler:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-gesture-handler:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-gesture-handler) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :react-native-linear-gradient:preBuild (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-linear-gradient:preBuild (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-linear-gradient:preBuild UP-TO-DATE
+Skipping task ':react-native-linear-gradient:preBuild' as it has no actions.
+Resolve mutations for :react-native-linear-gradient:preDebugBuild (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-linear-gradient:preDebugBuild (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-linear-gradient:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-linear-gradient:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-linear-gradient:writeDebugAarMetadata (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-linear-gradient:writeDebugAarMetadata (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-linear-gradient:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-linear-gradient:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-linear-gradient:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-linear-gradient) (Thread[Execution worker Thread 11,5,main]) started.
+Resolve mutations for :react-native-reanimated:assertLatestReactNativeWithNewArchitectureTask (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-reanimated:assertLatestReactNativeWithNewArchitectureTask (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-reanimated:assertLatestReactNativeWithNewArchitectureTask SKIPPED
+Skipping task ':react-native-reanimated:assertLatestReactNativeWithNewArchitectureTask' as task onlyIf 'Task satisfies onlyIf closure' is false.
+Resolve mutations for :react-native-reanimated:assertMinimalReactNativeVersionTask (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-reanimated:assertMinimalReactNativeVersionTask (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-reanimated:assertMinimalReactNativeVersionTask SKIPPED
+Skipping task ':react-native-reanimated:assertMinimalReactNativeVersionTask' as task onlyIf 'Task satisfies onlyIf closure' is false.
+Resolve mutations for :react-native-reanimated:prepareHeadersForPrefab (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-reanimated:prepareHeadersForPrefab (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-reanimated:prepareHeadersForPrefab UP-TO-DATE
+Caching disabled for task ':react-native-reanimated:prepareHeadersForPrefab' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':react-native-reanimated:prepareHeadersForPrefab' as it is up-to-date.
+Resolve mutations for :react-native-reanimated:preBuild (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-reanimated:preBuild (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-reanimated:preBuild UP-TO-DATE
+Skipping task ':react-native-reanimated:preBuild' as it has no actions.
+Resolve mutations for :react-native-reanimated:preDebugBuild (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-reanimated:preDebugBuild (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :react-native-reanimated:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-reanimated:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-reanimated:writeDebugAarMetadata (Thread[Execution worker Thread 13,5,main]) started.
+:react-native-reanimated:writeDebugAarMetadata (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :react-native-reanimated:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-reanimated:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-reanimated:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-reanimated) (Thread[Execution worker Thread 13,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:preBuild (Thread[Execution worker Thread 13,5,main]) started.
+:react-native-safe-area-context:preBuild (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+Skipping task ':react-native-safe-area-context:preBuild' as it has no actions.
+Resolve mutations for :react-native-safe-area-context:preDebugBuild (Thread[Execution worker Thread 13,5,main]) started.
+:react-native-safe-area-context:preDebugBuild (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :react-native-safe-area-context:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-safe-area-context:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-safe-area-context:writeDebugAarMetadata (Thread[Execution worker Thread 13,5,main]) started.
+:react-native-safe-area-context:writeDebugAarMetadata (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :react-native-safe-area-context:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-safe-area-context:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-safe-area-context) (Thread[Execution worker Thread 13,5,main]) started.
+Resolve mutations for :react-native-screens:preBuild (Thread[Execution worker Thread 13,5,main]) started.
+:react-native-screens:preBuild (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-screens:preBuild UP-TO-DATE
+Skipping task ':react-native-screens:preBuild' as it has no actions.
+Resolve mutations for :react-native-screens:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-screens:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-screens:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-screens:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-screens:writeDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-screens:writeDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-screens:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-screens:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-screens:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-screens) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :react-native-svg:preBuild (Thread[Execution worker Thread 13,5,main]) started.
+:react-native-svg:preBuild (Thread[Execution worker Thread 13,5,main]) started.
+
+> Task :react-native-svg:preBuild UP-TO-DATE
+Skipping task ':react-native-svg:preBuild' as it has no actions.
+Resolve mutations for :react-native-svg:preDebugBuild (Thread[Execution worker Thread 2,5,main]) started.
+:react-native-svg:preDebugBuild (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :react-native-svg:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-svg:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-svg:writeDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-svg:writeDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-svg:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-svg:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-svg:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-svg) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :react-native-webrtc:preBuild (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-webrtc:preBuild (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-webrtc:preBuild UP-TO-DATE
+Skipping task ':react-native-webrtc:preBuild' as it has no actions.
+Resolve mutations for :react-native-webrtc:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-webrtc:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-webrtc:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-webrtc:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-webrtc:writeDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-webrtc:writeDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-webrtc:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-webrtc:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-webrtc:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-webrtc) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+:app:checkDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:checkDebugAarMetadata FAILED
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Task ':app:checkDebugAarMetadata' is not up-to-date because:
+  Value of input property 'compileSdkVersion' has changed for task ':app:checkDebugAarMetadata'
+  Value of input property 'platformSdkApiLevel' has changed for task ':app:checkDebugAarMetadata'
+  Value of input property 'platformSdkExtension' has changed for task ':app:checkDebugAarMetadata'
+Could not execute [report metric STATISTICS_COLLECT_METRICS_OVERHEAD]
+Could not execute [report metric STATISTICS_COLLECT_METRICS_OVERHEAD]
+
+[Incubating] Problems report is available at: file:///C:/NEERAJ%20VENU/PROJECTS/SuperDesk%20Mob/SuperDesk-Android/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkDebugAarMetadata'.
+> A failure occurred while executing com.android.build.gradle.internal.tasks.CheckAarMetadataWorkAction
+   > 2 issues were found when checking AAR metadata:
+     
+       1.  Dependency 'androidx.core:core:1.16.0' requires libraries and applications that
+           depend on it to compile against version 35 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-34.
+     
+           Recommended action: Update this project to use a newer compileSdk
+           of at least 35, for example 35.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       2.  Dependency 'androidx.core:core-ktx:1.16.0' requires libraries and applications that
+           depend on it to compile against version 35 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-34.
+     
+           Recommended action: Update this project to use a newer compileSdk
+           of at least 35, for example 35.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 3s
+27 actionable tasks: 4 executed, 23 up-to-date
+Watched directory hierarchies: [C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\node_modules\@react-native\gradle-plugin, C:\NEERAJ VENU\PROJECTS\SuperDesk Mob\SuperDesk-Android\android]
