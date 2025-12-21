@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=react,ts,android,kotlin,nodejs,express,supabase,vscode,github" alt="Tech stack" />
+  <img src="https://skillicons.dev/icons?i=react,ts,kotlin,nodejs,express,supabase,vscode,github" alt="Tech stack" />
 </p>
 
 # SuperDesk Android
