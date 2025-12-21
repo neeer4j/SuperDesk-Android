@@ -225,7 +225,7 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
                             </View>
 
                             {error && (
-                                <View style={styles.errorContainer}>
+                                <View style={[styles.errorContainer, { backgroundColor: colors.error + '15' }]}>
                                     <Text style={[styles.errorText, { color: colors.error }]}>⚠️ {error}</Text>
                                 </View>
                             )}
@@ -250,8 +250,8 @@ const JoinSessionScreen: React.FC<JoinSessionScreenProps> = ({ navigation }) => 
                     <>
                         {/* Connected State */}
                         <Card style={{ ...styles.connectedCard, borderColor: colors.success }} variant="elevated">
-                            <View style={styles.connectedHeader}>
-                                <View style={styles.connectedIndicator} />
+                            <View style={[styles.connectedHeader, { backgroundColor: colors.success + '15' }]}>
+                                <View style={[styles.connectedIndicator, { backgroundColor: colors.success }]} />
                                 <Text style={[styles.connectedTitle, { color: colors.success }]}>Connected to Host</Text>
                             </View>
 
@@ -336,7 +336,6 @@ const styles = StyleSheet.create({
         marginTop: layout.spacing.xs,
     },
     errorContainer: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
         padding: layout.spacing.md,
         borderRadius: layout.borderRadius.sm,
         marginBottom: layout.spacing.md,
@@ -372,7 +371,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: layout.spacing.lg,
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -381,7 +379,6 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#10b981',
         marginRight: 8,
     },
     connectedTitle: {

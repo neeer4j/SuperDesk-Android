@@ -19,7 +19,7 @@ import { fileTransferService, TransferProgress, FileToSend } from '../services/F
 import { sessionManager, SessionState } from '../services/SessionManager';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenContainer, Card, Button } from '../components/ui';
-import { colors, typography, layout } from '../theme/designSystem';
+import { typography, layout } from '../theme/designSystem';
 
 interface FileTransferScreenProps {
     navigation: any;
@@ -262,24 +262,24 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
 
     const renderTransferItem = ({ item }: { item: TransferProgress }) => (
         <Card padding="sm" style={styles.transferItem}>
-            <View style={styles.transferIcon}>
+            <View style={[styles.transferIcon, { backgroundColor: colors.surfaceHighlight }]}>
                 <Text style={styles.directionIcon}>
                     {item.direction === 'send' ? '📤' : '📥'}
                 </Text>
             </View>
             <View style={styles.transferInfo}>
-                <Text style={styles.transferName} numberOfLines={1}>
+                <Text style={[styles.transferName, { color: colors.textPrimary }]} numberOfLines={1}>
                     {item.name}
                 </Text>
-                <Text style={styles.transferMeta}>
+                <Text style={[styles.transferMeta, { color: colors.textTertiary }]}>
                     {formatSize(item.size)} • {item.progress}%
                 </Text>
                 {item.status === 'transferring' && (
-                    <View style={styles.progressBar}>
+                    <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
                         <View
                             style={[
                                 styles.progressFill,
-                                { width: `${item.progress}%` }
+                                { width: `${item.progress}%`, backgroundColor: colors.primary }
                             ]}
                         />
                     </View>
@@ -287,9 +287,10 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
             </View>
             <View style={[
                 styles.transferStatus,
-                item.status === 'completed' && styles.statusCompleted,
-                item.status === 'failed' && styles.statusFailed,
-                item.status === 'transferring' && styles.statusTransferring,
+                { backgroundColor: colors.surface },
+                item.status === 'completed' && { backgroundColor: colors.success + '20' },
+                item.status === 'failed' && { backgroundColor: colors.error + '20' },
+                item.status === 'transferring' && { backgroundColor: colors.primary + '20' },
             ]}>
                 {item.status === 'transferring' ? (
                     <ActivityIndicator size="small" color={colors.primary} />
@@ -321,14 +322,19 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
 
     return (
         <ScreenContainer>
-            {/* Header with Settings */}
+            {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.logo}>File Transfer</Text>
-                </View>
-                <View style={styles.connectionStatus}>
-                    <View style={[styles.connectionDot, { backgroundColor: connectionInfo.color }]} />
-                    <Text style={styles.connectionText}>{connectionInfo.text}</Text>
+                    <Text style={[styles.logo, { color: colors.textPrimary }]}>File Transfer</Text>
+                    <View style={styles.connectionStatus}>
+                        <View style={[
+                            styles.connectionDot,
+                            { backgroundColor: connectionInfo.color }
+                        ]} />
+                        <Text style={[styles.connectionText, { color: colors.textSecondary }]}>
+                            {connectionInfo.text}
+                        </Text>
+                    </View>
                 </View>
                 <TouchableOpacity
                     style={styles.settingsButton}
@@ -338,46 +344,49 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                 </TouchableOpacity>
             </View>
 
-            {/* Active Session Info - Compact */}
+            {/* Session Info Bar - Compact */}
             {sessionState.isActive && (
-                <Card style={styles.sessionBar} variant="outlined">
+                <Card style={styles.sessionBar} padding="sm">
                     <View style={styles.sessionInfo}>
-                        <Text style={styles.sessionLabel}>
+                        <Text style={[styles.sessionLabel, { color: colors.textPrimary }]}>
                             {sessionState.role === 'host' ? '📱 Hosting' : '👁️ Joined'}: {formatCode(sessionState.sessionId)}
                         </Text>
                         {sessionState.peerId && (
-                            <Text style={styles.peerLabel}>• Peer connected</Text>
+                            <Text style={[styles.peerLabel, { color: colors.success }]}>• Peer connected</Text>
                         )}
                     </View>
                     <Button
-                        size="sm"
-                        variant="danger"
                         title="End"
+                        size="sm"
+                        variant="ghost"
                         onPress={handleEndSession}
-                        style={{ height: 32, paddingVertical: 0 }}
+                        style={{ height: 32 }}
                     />
                 </Card>
             )}
 
-            {/* Action Buttons */}
+            {/* Actions */}
             <View style={styles.actionsContainer}>
                 <TouchableOpacity
                     style={[styles.actionButtonContainer, !isChannelReady && { opacity: 0.6 }]}
                     onPress={handleSendFile}
                     disabled={isSending || !isChannelReady}
                 >
-                    <Card style={styles.actionButtonCard} variant="elevated">
+                    <Card style={styles.actionButtonCard}>
                         <View style={[
                             styles.actionIcon,
-                            !isChannelReady && styles.actionIconNotConnected
+                            { backgroundColor: isChannelReady ? colors.surfaceHighlight : colors.background }
                         ]}>
                             {isSending ? (
                                 <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
-                                <Text style={[styles.actionEmoji, !isChannelReady && styles.actionEmojiDimmed]}>📤</Text>
+                                <Text style={[
+                                    styles.actionEmoji,
+                                    !isChannelReady && styles.actionEmojiDimmed
+                                ]}>📄</Text>
                             )}
                         </View>
-                        <Text style={styles.actionText}>
+                        <Text style={[styles.actionText, { color: colors.textPrimary }]}>
                             {isSending ? 'Sending...' : 'Send File'}
                         </Text>
                     </Card>
@@ -387,60 +396,61 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                     style={styles.actionButtonContainer}
                     onPress={handleReceiveFiles}
                 >
-                    <Card style={styles.actionButtonCard} variant="elevated">
-                        <View style={styles.actionIcon}>
+                    <Card style={styles.actionButtonCard}>
+                        <View style={[styles.actionIcon, { backgroundColor: colors.surfaceHighlight }]}>
                             <Text style={styles.actionEmoji}>📥</Text>
-                            {/* Notification Badge */}
                             {incomingCount > 0 && (
-                                <View style={styles.badge}>
+                                <View style={[styles.badge, { backgroundColor: colors.error }]}>
                                     <Text style={styles.badgeText}>{incomingCount}</Text>
                                 </View>
                             )}
                         </View>
-                        <Text style={styles.actionText}>Incoming</Text>
+                        <Text style={[styles.actionText, { color: colors.textPrimary }]}>Incoming</Text>
                     </Card>
                 </TouchableOpacity>
             </View>
 
-            {/* Instructions Section - Only show when not connected */}
+            {/* Instructions (only if no active session) */}
             {!sessionState.isActive && (
-                <Card style={styles.instructionsContainer} variant="elevated">
-                    <Text style={styles.instructionsTitle}>How to Transfer Files</Text>
+                <View style={styles.instructionsContainer}>
+                    <Text style={[styles.instructionsTitle, { color: colors.textPrimary }]}>How to Transfer Files</Text>
                     <View style={styles.instructionStep}>
-                        <Text style={styles.stepNumber}>1</Text>
-                        <Text style={styles.stepText}>Go to <Text style={styles.stepHighlight}>Host</Text> or <Text style={styles.stepHighlight}>Join</Text> tab</Text>
+                        <Text style={[styles.stepNumber, { backgroundColor: colors.primary, color: '#FFFFFF' }]}>1</Text>
+                        <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                            Go to <Text style={[styles.stepHighlight, { color: colors.primary }]}>Host</Text> or <Text style={[styles.stepHighlight, { color: colors.primary }]}>Join</Text> tab
+                        </Text>
                     </View>
                     <View style={styles.instructionStep}>
-                        <Text style={styles.stepNumber}>2</Text>
-                        <Text style={styles.stepText}>Start or join a session with another device</Text>
+                        <Text style={[styles.stepNumber, { backgroundColor: colors.primary, color: '#FFFFFF' }]}>2</Text>
+                        <Text style={[styles.stepText, { color: colors.textSecondary }]}>Start or join a session with another device</Text>
                     </View>
                     <View style={styles.instructionStep}>
-                        <Text style={styles.stepNumber}>3</Text>
-                        <Text style={styles.stepText}>Start screen sharing to establish connection</Text>
+                        <Text style={[styles.stepNumber, { backgroundColor: colors.primary, color: '#FFFFFF' }]}>3</Text>
+                        <Text style={[styles.stepText, { color: colors.textSecondary }]}>Start screen sharing to establish connection</Text>
                     </View>
                     <View style={styles.instructionStep}>
-                        <Text style={styles.stepNumber}>4</Text>
-                        <Text style={styles.stepText}>Return here to send/receive files</Text>
+                        <Text style={[styles.stepNumber, { backgroundColor: colors.primary, color: '#FFFFFF' }]}>4</Text>
+                        <Text style={[styles.stepText, { color: colors.textSecondary }]}>Return here to send/receive files</Text>
                     </View>
-                </Card>
+                </View>
             )}
 
             {/* Ready indicator */}
             {isChannelReady && (
-                <View style={styles.readyBadge}>
-                    <Text style={styles.readyBadgeText}>✓ Connection ready • Send or receive files now</Text>
+                <View style={[styles.readyBadge, { backgroundColor: colors.success + '20' }]}>
+                    <Text style={[styles.readyBadgeText, { color: colors.success }]}>
+                        ✨ Data channel ready
+                    </Text>
                 </View>
             )}
 
-            {/* Transfer History */}
+            {/* History List */}
             <View style={styles.historyContainer}>
-                <Text style={styles.historyTitle}>Transfer History</Text>
-
+                <Text style={[styles.historyTitle, { color: colors.textPrimary }]}>Transfer History</Text>
                 {transfers.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <FileTransferIcon size={48} color={colors.textTertiary} />
-                        <Text style={styles.emptyText}>No transfers yet</Text>
-                        <Text style={styles.emptySubtext}>
+                        <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No transfers yet</Text>
+                        <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
                             Your file transfers will appear here
                         </Text>
                     </View>
@@ -448,33 +458,33 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                     <FlatList
                         data={transfers}
                         renderItem={renderTransferItem}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={item => item.id}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 100 }}
+                        contentContainerStyle={{ paddingBottom: 20 }}
                     />
                 )}
             </View>
 
             {/* Incoming Files Modal */}
             <Modal
+                transparent
                 visible={showIncomingModal}
                 animationType="slide"
-                transparent={true}
                 onRequestClose={() => setShowIncomingModal(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>📥 Incoming Files</Text>
+                            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>📥 Incoming Files</Text>
                             <TouchableOpacity onPress={() => setShowIncomingModal(false)}>
-                                <Text style={styles.modalClose}>✕</Text>
+                                <Text style={[styles.modalClose, { color: colors.textSecondary }]}>✕</Text>
                             </TouchableOpacity>
                         </View>
 
                         {incomingTransfers.length === 0 ? (
                             <View style={styles.modalEmpty}>
-                                <Text style={styles.modalEmptyText}>No incoming files</Text>
-                                <Text style={styles.modalEmptySubtext}>
+                                <Text style={[styles.modalEmptyText, { color: colors.textPrimary }]}>No incoming files</Text>
+                                <Text style={[styles.modalEmptySubtext, { color: colors.textSecondary }]}>
                                     Files sent to you will appear here automatically.
                                     You don't need to accept them - they save directly to Downloads.
                                 </Text>
@@ -482,17 +492,18 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
                         ) : (
                             <FlatList
                                 data={incomingTransfers}
-                                renderItem={renderTransferItem}
-                                keyExtractor={(item) => item.id}
+                                keyExtractor={item => item.id}
                                 style={styles.modalList}
+                                renderItem={renderTransferItem}
                             />
                         )}
 
-                        <Button
-                            title="Close"
+                        <TouchableOpacity
+                            style={[styles.modalButton, { backgroundColor: colors.surface }]}
                             onPress={() => setShowIncomingModal(false)}
-                            style={{ marginTop: layout.spacing.md }}
-                        />
+                        >
+                            <Text style={[styles.modalButtonText, { color: colors.textPrimary }]}>Close</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -514,7 +525,6 @@ const styles = StyleSheet.create({
     logo: {
         fontFamily: typography.fontFamily.bold,
         fontSize: typography.size.xl,
-        color: colors.textPrimary,
     },
     connectionStatus: {
         flexDirection: 'row',
@@ -529,7 +539,6 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     connectionText: {
-        color: colors.textSecondary,
         fontSize: 11,
         fontFamily: typography.fontFamily.medium,
         flexShrink: 1,
@@ -542,7 +551,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 16,
-        padding: 12, // override default padding for compact look
+        padding: 12,
     },
     sessionInfo: {
         flexDirection: 'row',
@@ -550,12 +559,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     sessionLabel: {
-        color: colors.textPrimary,
         fontSize: typography.size.sm,
         fontFamily: typography.fontFamily.medium,
     },
     peerLabel: {
-        color: colors.success,
         fontSize: typography.size.xs,
         marginLeft: 8,
         fontFamily: typography.fontFamily.medium,
@@ -577,14 +584,12 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: colors.surfaceHighlight,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 12,
         position: 'relative',
     },
     actionIconNotConnected: {
-        backgroundColor: colors.background, // dimmer
     },
     actionEmoji: {
         fontSize: 24,
@@ -593,7 +598,6 @@ const styles = StyleSheet.create({
         opacity: 0.4,
     },
     actionText: {
-        color: colors.textPrimary,
         fontSize: typography.size.md,
         fontFamily: typography.fontFamily.semiBold,
     },
@@ -601,7 +605,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -4,
         right: -4,
-        backgroundColor: colors.error,
         borderRadius: 10,
         minWidth: 20,
         height: 20,
@@ -620,7 +623,6 @@ const styles = StyleSheet.create({
     instructionsTitle: {
         fontSize: typography.size.md,
         fontFamily: typography.fontFamily.semiBold,
-        color: colors.textPrimary,
         marginBottom: 12,
     },
     instructionStep: {
@@ -632,7 +634,6 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: colors.primary,
         color: '#FFFFFF',
         fontSize: 12,
         fontFamily: typography.fontFamily.bold,
@@ -643,24 +644,20 @@ const styles = StyleSheet.create({
     },
     stepText: {
         flex: 1,
-        color: colors.textSecondary,
         fontSize: typography.size.sm,
         fontFamily: typography.fontFamily.regular,
     },
     stepHighlight: {
-        color: colors.primary,
         fontFamily: typography.fontFamily.bold,
     },
     readyBadge: {
         paddingVertical: 10,
         paddingHorizontal: 16,
-        backgroundColor: colors.success + '20',
         borderRadius: 8,
         alignSelf: 'center',
         marginBottom: 16,
     },
     readyBadgeText: {
-        color: colors.success,
         fontSize: typography.size.sm,
         fontFamily: typography.fontFamily.medium,
     },
@@ -671,7 +668,6 @@ const styles = StyleSheet.create({
     historyTitle: {
         fontSize: typography.size.lg,
         fontFamily: typography.fontFamily.semiBold,
-        color: colors.textPrimary,
         marginBottom: 12,
     },
     emptyState: {
@@ -682,13 +678,11 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: typography.size.md,
-        color: colors.textPrimary,
         marginTop: 16,
         fontFamily: typography.fontFamily.medium,
     },
     emptySubtext: {
         fontSize: typography.size.sm,
-        color: colors.textSecondary,
         marginTop: 8,
         fontFamily: typography.fontFamily.regular,
     },
@@ -701,7 +695,6 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 8,
-        backgroundColor: colors.surfaceHighlight,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
@@ -714,44 +707,30 @@ const styles = StyleSheet.create({
     },
     transferName: {
         fontSize: typography.size.sm,
-        color: colors.textPrimary,
         fontFamily: typography.fontFamily.medium,
     },
     transferMeta: {
         fontSize: typography.size.xs,
-        color: colors.textTertiary,
         marginTop: 4,
         fontFamily: typography.fontFamily.regular,
     },
     progressBar: {
         height: 4,
-        backgroundColor: colors.border,
         borderRadius: 2,
         marginTop: 8,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
-        backgroundColor: colors.primary,
         borderRadius: 2,
     },
     transferStatus: {
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 8,
-    },
-    statusCompleted: {
-        backgroundColor: colors.success + '20',
-    },
-    statusFailed: {
-        backgroundColor: colors.error + '20',
-    },
-    statusTransferring: {
-        backgroundColor: colors.primary + '20',
     },
     statusText: {
         fontSize: 12,
@@ -763,12 +742,10 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modalContent: {
-        backgroundColor: colors.surface,
         borderRadius: layout.borderRadius.lg,
         padding: 20,
         maxHeight: '80%',
         borderWidth: 1,
-        borderColor: colors.border,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -778,12 +755,10 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: typography.size.lg,
-        color: colors.textPrimary,
         fontFamily: typography.fontFamily.bold,
     },
     modalClose: {
         fontSize: 24,
-        color: colors.textSecondary,
     },
     modalEmpty: {
         padding: 20,
@@ -791,12 +766,10 @@ const styles = StyleSheet.create({
     },
     modalEmptyText: {
         fontSize: typography.size.md,
-        color: colors.textPrimary,
         marginBottom: 8,
     },
     modalEmptySubtext: {
         fontSize: typography.size.sm,
-        color: colors.textSecondary,
         textAlign: 'center',
     },
     modalList: {
@@ -804,13 +777,11 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         marginTop: 16,
-        backgroundColor: colors.surface,
         padding: 12,
         borderRadius: 8,
         alignItems: 'center',
     },
     modalButtonText: {
-        color: colors.textPrimary,
         fontFamily: typography.fontFamily.medium,
     },
 });

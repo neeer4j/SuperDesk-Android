@@ -239,7 +239,7 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
                         </Text>
 
                         {error && (
-                            <View style={styles.errorContainer}>
+                            <View style={[styles.errorContainer, { backgroundColor: colors.error + '15' }]}>
                                 <Text style={[styles.errorText, { color: colors.error }]}>⚠️ {error}</Text>
                             </View>
                         )}
@@ -387,7 +387,6 @@ const styles = StyleSheet.create({
         lineHeight: typography.lineHeight.md,
     },
     errorContainer: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
         padding: layout.spacing.md,
         borderRadius: layout.borderRadius.sm,
         marginBottom: layout.spacing.md,

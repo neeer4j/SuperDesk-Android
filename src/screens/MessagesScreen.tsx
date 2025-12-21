@@ -15,7 +15,7 @@ import { SettingsIcon } from '../components/Icons';
 import { messagesService, Message } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenContainer, Card } from '../components/ui'; // Button not strictly needed for list items but good to have
-import { colors, typography, layout } from '../theme/designSystem';
+import { typography, layout } from '../theme/designSystem';
 
 interface MessagesScreenProps {
     navigation: any;
@@ -88,30 +88,41 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
                 <Card
                     variant="elevated"
                     padding="sm"
-                    style={{ ...styles.conversationItem, ...(hasUnread ? styles.unreadItem : {}) }}
+                    style={{
+                        ...styles.conversationItem,
+                        backgroundColor: hasUnread ? colors.surfaceHighlight : colors.surface,
+                        borderColor: colors.border,
+                        ...(hasUnread ? { borderWidth: 1 } : {})
+                    }}
                 >
                     <View style={styles.avatarContainer}>
                         {partner?.avatar_url ? (
                             <Image
                                 source={{ uri: partner.avatar_url }}
-                                style={styles.avatar}
+                                style={[styles.avatar, { backgroundColor: colors.surfaceHighlight }]}
                             />
                         ) : (
-                            <View style={styles.avatarPlaceholder}>
-                                <Text style={styles.avatarText}>
+                            <View style={[styles.avatarPlaceholder, {
+                                backgroundColor: colors.primary + '20',
+                                borderColor: colors.primary
+                            }]}>
+                                <Text style={[styles.avatarText, { color: colors.primary }]}>
                                     {partner?.username?.charAt(0).toUpperCase() || '?'}
                                 </Text>
                             </View>
                         )}
-                        {/* Online indicator could go here */}
                     </View>
 
                     <View style={styles.conversationInfo}>
                         <View style={styles.conversationHeader}>
-                            <Text style={styles.conversationName} numberOfLines={1}>
+                            <Text style={[styles.conversationName, { color: colors.textPrimary }]} numberOfLines={1}>
                                 {partner?.display_name || partner?.username || 'Unknown'}
                             </Text>
-                            <Text style={[styles.timestamp, hasUnread && styles.unreadTimestamp]}>
+                            <Text style={[
+                                styles.timestamp,
+                                { color: hasUnread ? colors.primary : colors.textTertiary },
+                                hasUnread && styles.unreadTimestamp
+                            ]}>
                                 {formatTime(item.lastMessage.created_at)}
                             </Text>
                         </View>
@@ -120,6 +131,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
                             <Text
                                 style={[
                                     styles.lastMessage,
+                                    { color: hasUnread ? colors.textPrimary : colors.textSecondary },
                                     hasUnread && styles.unreadMessageText
                                 ]}
                                 numberOfLines={1}
@@ -127,7 +139,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
                                 {item.lastMessage.content}
                             </Text>
                             {hasUnread && (
-                                <View style={styles.unreadBadge}>
+                                <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
                                     <Text style={styles.unreadCount}>{item.unreadCount}</Text>
                                 </View>
                             )}
@@ -142,7 +154,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
         <ScreenContainer withScroll={false}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Messages</Text>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Messages</Text>
                 <TouchableOpacity
                     style={styles.settingsButton}
                     onPress={() => navigation.navigate('Settings')}
@@ -172,8 +184,8 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <Text style={styles.emptyIcon}>💬</Text>
-                            <Text style={styles.emptyTitle}>No Messages Yet</Text>
-                            <Text style={styles.emptyText}>
+                            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Messages Yet</Text>
+                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                                 Start a conversation with your friends to see them here.
                             </Text>
                         </View>
@@ -195,7 +207,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: typography.fontFamily.bold,
         fontSize: typography.size.xl,
-        color: colors.textPrimary,
     },
     settingsButton: {
         padding: 4,
@@ -212,12 +223,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginBottom: layout.spacing.md,
         alignItems: 'center',
-        backgroundColor: colors.surface,
-    },
-    unreadItem: {
-        backgroundColor: colors.surfaceHighlight, // Slightly lighter for unread
-        borderColor: colors.border,
-        borderWidth: 1,
     },
     avatarContainer: {
         marginRight: layout.spacing.md,
@@ -226,22 +231,18 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: colors.surfaceHighlight,
     },
     avatarPlaceholder: {
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: colors.primary + '20', // Low opacity primary
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: colors.primary,
     },
     avatarText: {
         fontSize: 20,
         fontFamily: typography.fontFamily.bold,
-        color: colors.primary,
     },
     conversationInfo: {
         flex: 1,
@@ -256,17 +257,14 @@ const styles = StyleSheet.create({
     conversationName: {
         fontSize: typography.size.md,
         fontFamily: typography.fontFamily.semiBold,
-        color: colors.textPrimary,
         flex: 1,
         marginRight: 8,
     },
     timestamp: {
         fontSize: 11,
         fontFamily: typography.fontFamily.regular,
-        color: colors.textTertiary,
     },
     unreadTimestamp: {
-        color: colors.primary,
         fontFamily: typography.fontFamily.medium,
     },
     messagePreview: {
@@ -278,15 +276,12 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: typography.size.sm,
         fontFamily: typography.fontFamily.regular,
-        color: colors.textSecondary,
         marginRight: 8,
     },
     unreadMessageText: {
-        color: colors.textPrimary,
         fontFamily: typography.fontFamily.medium,
     },
     unreadBadge: {
-        backgroundColor: colors.primary,
         borderRadius: 10,
         minWidth: 20,
         height: 20,
@@ -314,13 +309,11 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: typography.size.lg,
         fontFamily: typography.fontFamily.semiBold,
-        color: colors.textPrimary,
         marginBottom: layout.spacing.sm,
     },
     emptyText: {
         fontSize: typography.size.md,
         fontFamily: typography.fontFamily.regular,
-        color: colors.textSecondary,
         textAlign: 'center',
     },
 });

@@ -17,7 +17,7 @@ import { BackIcon } from '../components/Icons';
 import { messagesService, Message } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenContainer } from '../components/ui';
-import { colors, typography, layout } from '../theme/designSystem';
+import { typography, layout } from '../theme/designSystem';
 
 interface ChatScreenProps {
     navigation: any;
@@ -113,8 +113,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
                             style={styles.messageAvatar}
                         />
                     ) : (
-                        <View style={styles.messageAvatarPlaceholder}>
-                            <Text style={styles.messageAvatarText}>
+                        <View style={[styles.messageAvatarPlaceholder, {
+                            backgroundColor: colors.surfaceHighlight,
+                            borderColor: colors.primary
+                        }]}>
+                            <Text style={[styles.messageAvatarText, { color: colors.primary }]}>
                                 {username?.charAt(0).toUpperCase()}
                             </Text>
                         </View>
@@ -124,11 +127,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
                 <View style={[
                     styles.messageBubble,
-                    isOwnMessage ? styles.ownMessageBubble : styles.theirMessageBubble
+                    isOwnMessage
+                        ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
+                        : {
+                            backgroundColor: colors.surface,
+                            borderBottomLeftRadius: 4,
+                            borderWidth: 1,
+                            borderColor: colors.border
+                        }
                 ]}>
                     <Text style={[
                         styles.messageText,
-                        isOwnMessage ? styles.ownMessageText : styles.theirMessageText
+                        isOwnMessage
+                            ? { color: '#FFFFFF' }
+                            : { color: colors.textPrimary }
                     ]}>
                         {item.content}
                     </Text>
@@ -148,14 +160,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     return (
         <ScreenContainer style={styles.container} withScroll={false}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
                 >
                     <BackIcon size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>@{username}</Text>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>@{username}</Text>
                 <View style={styles.headerRight} />
             </View>
 
@@ -169,7 +181,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
                 onContentSizeChange={scrollToBottom}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>
+                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                             No messages yet. Start the conversation!
                         </Text>
                     </View>
@@ -181,9 +193,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
-                <View style={styles.inputContainer}>
+                <View style={[styles.inputContainer, {
+                    borderTopColor: colors.border,
+                    backgroundColor: colors.background
+                }]}>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, {
+                            backgroundColor: colors.surface,
+                            color: colors.textPrimary,
+                            borderColor: colors.border
+                        }]}
                         placeholder="Type a message..."
                         placeholderTextColor={colors.textTertiary}
                         value={messageText}
@@ -194,7 +213,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
                     <TouchableOpacity
                         style={[
                             styles.sendButton,
-                            (!messageText.trim() || isSending) && styles.sendButtonDisabled
+                            { backgroundColor: colors.primary },
+                            (!messageText.trim() || isSending) && { opacity: 0.5, backgroundColor: colors.surfaceHighlight }
                         ]}
                         onPress={handleSend}
                         disabled={!messageText.trim() || isSending}
@@ -225,7 +245,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: layout.spacing.md,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
     },
     backButton: {
         padding: 4,
@@ -233,7 +252,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: typography.size.lg,
         fontFamily: typography.fontFamily.semiBold,
-        color: colors.textPrimary,
     },
     headerRight: {
         width: 32,
@@ -263,9 +281,7 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: colors.surfaceHighlight,
         borderWidth: 1,
-        borderColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 8,
@@ -273,7 +289,6 @@ const styles = StyleSheet.create({
     messageAvatarText: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: colors.primary,
     },
     avatarSpacer: {
         width: 40,
@@ -284,49 +299,27 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: layout.borderRadius.xl,
     },
-    ownMessageBubble: {
-        backgroundColor: colors.primary,
-        borderBottomRightRadius: 4,
-    },
-    theirMessageBubble: {
-        backgroundColor: colors.surface,
-        borderBottomLeftRadius: 4,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
     messageText: {
         fontSize: typography.size.md,
         lineHeight: 20,
         fontFamily: typography.fontFamily.regular,
     },
-    ownMessageText: {
-        color: '#FFFFFF',
-    },
-    theirMessageText: {
-        color: colors.textPrimary,
-    },
     inputContainer: {
         flexDirection: 'row',
         padding: layout.spacing.md,
         borderTopWidth: 1,
-        borderTopColor: colors.border,
-        backgroundColor: colors.background,
     },
     input: {
         flex: 1,
-        backgroundColor: colors.surface,
         borderRadius: 24,
         paddingHorizontal: 16,
         paddingVertical: 10,
         fontSize: 15,
-        color: colors.textPrimary,
         maxHeight: 100,
         borderWidth: 1,
-        borderColor: colors.border,
         fontFamily: typography.fontFamily.regular,
     },
     sendButton: {
-        backgroundColor: colors.primary,
         borderRadius: 24,
         paddingHorizontal: 20,
         paddingVertical: 10,
@@ -334,10 +327,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         minWidth: 70,
-    },
-    sendButtonDisabled: {
-        backgroundColor: colors.surfaceHighlight, // or utility color
-        opacity: 0.5,
     },
     sendButtonText: {
         color: '#FFFFFF',
@@ -352,7 +341,6 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: typography.size.md,
-        color: colors.textSecondary,
         textAlign: 'center',
         fontFamily: typography.fontFamily.regular,
     },

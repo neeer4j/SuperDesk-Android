@@ -15,7 +15,7 @@ import { webRTCService } from '../services/WebRTCService';
 import { remoteControlService } from '../services/RemoteControlService';
 import { sessionManager } from '../services/SessionManager';
 import { ScreenContainer, Card, Button } from '../components/ui';
-import { colors, layout, typography } from '../theme/designSystem';
+import { layout, typography } from '../theme/designSystem';
 import { useTheme } from '../context/ThemeContext';
 
 interface SessionScreenProps {
@@ -335,7 +335,7 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                     onPress={handleGoBack}
                     style={{ paddingHorizontal: 0 }}
                 />
-                <Text style={styles.title}>Live Session</Text>
+                <Text style={[styles.title, { color: colors.textPrimary }]}>Live Session</Text>
                 <View style={{ width: 60 }} />
             </View>
 
@@ -344,7 +344,7 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                 <Card padding="lg" style={styles.statusCard}>
                     <View style={styles.statusRow}>
                         <View style={[styles.statusDot, { backgroundColor: statusDisplay.color }]} />
-                        <Text style={styles.statusText}>{statusDisplay.text}</Text>
+                        <Text style={[styles.statusText, { color: colors.textPrimary }]}>{statusDisplay.text}</Text>
                     </View>
 
                     {(status === 'initializing' || status === 'connecting') && (
@@ -357,9 +357,9 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
 
                     {status === 'streaming' && (
                         <View style={styles.streamingContainer}>
-                            <View style={styles.pulseRing} />
+                            <View style={[styles.pulseRing, { backgroundColor: colors.success }]} />
                             <Text style={styles.streamingEmoji}>📺</Text>
-                            <Text style={styles.streamingText}>
+                            <Text style={[styles.streamingText, { color: colors.success }]}>
                                 You are sharing your screen
                             </Text>
                         </View>
@@ -374,31 +374,34 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                 <Card style={styles.infoCard}>
                     <View style={styles.row}>
                         <View>
-                            <Text style={styles.label}>SESSION CODE</Text>
-                            <Text style={styles.value}>{formatSessionId(sessionId)}</Text>
+                            <Text style={[styles.label, { color: colors.textTertiary }]}>SESSION CODE</Text>
+                            <Text style={[styles.value, { color: colors.textPrimary }]}>{formatSessionId(sessionId)}</Text>
                         </View>
                         <Button title="Share" size="sm" variant="secondary" onPress={handleShareCode} />
                     </View>
 
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <View style={styles.row}>
                         <View>
-                            <Text style={styles.label}>GUEST ID</Text>
-                            <Text style={styles.value}>{guestId ? guestId.slice(0, 8) + '...' : 'None'}</Text>
+                            <Text style={[styles.label, { color: colors.textTertiary }]}>GUEST ID</Text>
+                            <Text style={[styles.value, { color: colors.textPrimary }]}>{guestId ? guestId.slice(0, 8) + '...' : 'None'}</Text>
                         </View>
                         <View>
-                            <Text style={styles.label}>CONNECTION</Text>
-                            <Text style={styles.value}>{connectionState}</Text>
+                            <Text style={[styles.label, { color: colors.textTertiary }]}>CONNECTION</Text>
+                            <Text style={[styles.value, { color: colors.textPrimary }]}>{connectionState}</Text>
                         </View>
                     </View>
                 </Card>
 
                 {/* Accessibility Warning */}
                 {!accessibilityEnabled && (
-                    <Card style={styles.warningCard}>
-                        <Text style={styles.warningTitle}>⚠️ Access Required</Text>
-                        <Text style={styles.warningText}>
+                    <Card style={[styles.warningCard, {
+                        borderColor: colors.warning,
+                        backgroundColor: colors.warning + '15' // ~10% opacity
+                    }]}>
+                        <Text style={[styles.warningTitle, { color: colors.warning }]}>⚠️ Access Required</Text>
+                        <Text style={[styles.warningText, { color: colors.textSecondary }]}>
                             Accessibility permission is needed for remote control to work.
                         </Text>
                         <Button
@@ -442,7 +445,6 @@ const styles = StyleSheet.create({
         paddingVertical: layout.spacing.sm,
     },
     title: {
-        color: colors.textPrimary,
         fontSize: typography.size.lg,
         fontWeight: '600',
     },
@@ -465,7 +467,6 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     statusText: {
-        color: colors.textPrimary,
         fontSize: typography.size.md,
         fontWeight: '500',
     },
@@ -478,7 +479,6 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: colors.success,
         opacity: 0.2,
         top: -12,
     },
@@ -487,7 +487,6 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     streamingText: {
-        color: colors.success,
         fontWeight: '600',
     },
     infoCard: {
@@ -500,34 +499,27 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: colors.border,
         marginVertical: layout.spacing.md,
     },
     label: {
-        color: colors.textTertiary,
         fontSize: 10,
         fontWeight: 'bold',
         letterSpacing: 1,
         marginBottom: 4,
     },
     value: {
-        color: colors.textPrimary,
         fontSize: 16,
         fontWeight: '500',
         fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
     warningCard: {
-        borderColor: colors.warning,
         borderWidth: 1,
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
     },
     warningTitle: {
-        color: colors.warning,
         fontWeight: 'bold',
         marginBottom: 4,
     },
     warningText: {
-        color: colors.textSecondary,
         fontSize: 12,
     },
     footer: {

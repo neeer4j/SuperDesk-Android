@@ -4,7 +4,6 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors } from '../theme/designSystem';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -66,19 +65,18 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 // Bottom Tab Navigator
 const TabNavigator: React.FC = () => {
-    // We can use our direct design system values or stick to useTheme() if we want dynamic switching
-    // mixing both for now to ensure we hit the dark theme productivity vibe
-    const { colors: themeColors } = useTheme();
+    // Use dynamic theme colors
+    const { colors } = useTheme();
 
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: [styles.tabBar, {
-                    backgroundColor: colors.surface, // New surface color
+                    backgroundColor: colors.surface,
                     borderTopColor: colors.border,
                     borderTopWidth: 1,
-                    elevation: 0, // Flat look
+                    elevation: 0,
                 }],
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.textTertiary,
