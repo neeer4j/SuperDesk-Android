@@ -1,18 +1,36 @@
-# SuperDesk Mobile
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=react,ts,android,nodejs,supabase,webrtc,vscode,github" alt="Tech stack" />
+</p>
 
-A React Native mobile client for [SuperDesk](https://github.com/neeer4j/SuperDesk) - the remote desktop access software.
+# SuperDesk Android
+
+A powerful React Native mobile client for [SuperDesk](https://github.com/neeer4j/SuperDesk) - the remote desktop access software.
 
 ## 📱 Features
 
-- **View & Control PC** - Connect to your PC running SuperDesk Agent and control it from your phone
-- **Host Phone Screen** - Share your Android screen to be viewed/controlled from a PC (coming soon)
-- **Touch Gestures** - Intuitive gesture controls:
-  - Single tap = Left click
-  - Double tap = Double click
-  - Long press = Right click
-  - Drag = Mouse movement
-  - Two-finger scroll = Scroll
-- **Secure Connection** - WebRTC P2P with DTLS-SRTP encryption
+- **📱 Remote Desktop Control**
+  - View high-quality PC screen streams with WebRTC
+  - Control mouse (touch-to-click, drag-to-move, scroll)
+  - Native keyboard injection for typing on remote PC
+  - **Dynamic Toolbar** for quick actions
+
+- **📡 Host Mode (Screen Sharing)**
+  - Share your Android screen to a PC viewer
+  - Generate temporary 8-digit session codes for secure sharing
+
+- **📂 File Transfer**
+  - **P2P File Sharing**: Send photos and documents directly to connected PC
+  - **Receive Files**: Accept incoming files from PC seamlessly
+  - **Transfer History**: Track recent sent and received files
+
+- **💬 Real-Time Communication**
+  - **In-Session Chat**: Text chat with the connected peer
+  - **Live Notifications**: Get alerts for connection status and transfers
+
+- **🎨 Modern UI/UX**
+  - **Dynamic Theming**: Full Light/Dark mode support (syncs with system or manual toggle)
+  - **Fluid Animations**: Smooth transitions and component animations
+  - **Custom Design System**: Consistent typography, colors, and components
 
 ## 🚀 Quick Start
 
@@ -21,7 +39,7 @@ A React Native mobile client for [SuperDesk](https://github.com/neeer4j/SuperDes
 - Node.js v18+
 - Android Studio (for Android development)
 - JDK 17
-- An Android device or emulator
+- An Android device or emulator with Developer Options enabled
 
 ### Installation
 
@@ -39,50 +57,59 @@ npm run android
 ## 📁 Project Structure
 
 ```
-SuperDeskMobile/
+SuperDesk-Android/
 ├── src/
+│   ├── components/     # Reusable UI components (Card, Button, Input, etc.)
+│   ├── context/        # React Context (Auth, Theme)
+│   ├── navigation/     # Stack and Tab navigation setup
 │   ├── screens/
-│   │   ├── HomeScreen.tsx      # Session join/host
-│   │   ├── RemoteScreen.tsx    # View/control PC
-│   │   └── SessionScreen.tsx   # Host mode
+│   │   ├── LandingScreen.tsx   # Welcome & Auth Check
+│   │   ├── LoginScreen.tsx     # Email/OTP Authentication
+│   │   ├── HostSession.tsx     # Host mode (Share Screen)
+│   │   ├── JoinSession.tsx     # Join mode (Control PC)
+│   │   ├── SessionScreen.tsx   # Active session view
+│   │   ├── RemoteScreen.tsx    # Remote control interface
+│   │   ├── FileTransfer.tsx    # File manager
+│   │   └── ChatScreen.tsx      # In-session messaging
 │   ├── services/
-│   │   ├── SocketService.ts    # Signaling server connection
-│   │   ├── WebRTCService.ts    # P2P video/data streaming
-│   │   └── InputService.ts     # Touch-to-mouse translation
-│   └── navigation/
-│       └── Navigation.tsx      # React Navigation setup
-└── android/                    # Android native code
+│   │   ├── SocketService.ts    # Signaling server (WebSocket)
+│   │   ├── WebRTCService.ts    # P2P video/data channels
+│   │   └── RemoteControl.ts    # Input injection service
+│   └── theme/
+│       └── designSystem.ts     # Theme tokens (colors, typography)
+└── android/                    # Native Android code
 ```
 
 ## 🎮 How to Use
 
-### Control PC from Phone
+### 1. Control PC from Phone
+1. Start **SuperDesk Agent** on your Windows PC.
+2. Note the **8-digit session code** from the PC.
+3. Open **SuperDesk Android** on your phone.
+4. Go to the **Join** tab, enter the code, and tap **Connect**.
+5. Use touch gestures to control the mouse!
 
-1. Start **SuperDesk Agent** on your Windows PC
-2. Host a session and note the 8-character code
-3. Open **SuperDesk Mobile** on your phone
-4. Enter the session code and tap **Connect**
-5. Use touch gestures to control your PC!
+### 2. Share Files
+1. During an active session, navigate to the **File Transfer** tab.
+2. Tap **Send File** to pick a document or image.
+3. The file is sent instantly via P2P data channel.
 
-### Share Phone Screen (Coming Soon)
-
-1. Open **SuperDesk Mobile** on your phone
-2. Tap **Start Hosting**
-3. Share the session code with your PC
-4. Open SuperDesk web client on PC and enter the code
+### 3. Change Theme
+1. Go to **Settings** (gear icon in header).
+2. Tap **Light** or **Dark** to switch styles instantly.
 
 ## 🔧 Configuration
 
-The app connects to the SuperDesk signaling server by default. To change the server URL, modify `src/services/SocketService.ts`:
+The app connects to the SuperDesk signaling server. To change the endpoint, modify `src/services/SocketService.ts`:
 
 ```typescript
-const DEFAULT_SERVER_URL = 'https://your-server-url.com';
+const SOCKET_URL = 'https://your-signal-server.com';
 ```
 
 ## 📄 License
 
-GPL-3.0 - See [LICENSE](../LICENSE)
+GPL-3.0 - See [LICENSE](LICENSE)
 
 ---
 
-Built with ❤️ using React Native & WebRTC
+Built with ❤️ using **React Native**, **WebRTC**, & **Supabase**
