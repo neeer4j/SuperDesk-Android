@@ -128,8 +128,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
         setIsSubmitting(true);
         try {
             await authService.verifyOTP(email, otpCode);
-            // After successful OTP verification, trigger login which will navigate to MainTabs
+            // Update auth state
             onLogin();
+            // Navigate directly to the app
+            navigation.navigate('MainTabs');
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Invalid verification code');
         } finally {
