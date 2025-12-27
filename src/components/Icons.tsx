@@ -1,67 +1,57 @@
-// Icon components for SuperDesk Mobile (using Text/Emoji - no native SVG required)
+// Icon components using Lucide React Native
 import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import {
+    Monitor,
+    Link,
+    Folder,
+    Users,
+    MessageCircle,
+    Settings,
+    ChevronLeft,
+    Menu,
+} from 'lucide-react-native';
 
 interface IconProps {
     size?: number;
     color?: string;
 }
 
-// Host Session - Monitor/Screen icon
+// Host Session - Monitor icon
 export const HostIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>📺</Text>
-    </View>
+    <Monitor size={size} color={color} strokeWidth={2} />
 );
 
-// Join Session - Connect/Link icon
+// Join Session - Link icon
 export const JoinIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>🔗</Text>
-    </View>
+    <Link size={size} color={color} strokeWidth={2} />
 );
 
 // File Transfer - Folder icon
 export const FileTransferIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>📁</Text>
-    </View>
+    <Folder size={size} color={color} strokeWidth={2} />
 );
 
-// Friends - People icon
+// Friends - Users icon
 export const FriendsIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>👥</Text>
-    </View>
+    <Users size={size} color={color} strokeWidth={2} />
 );
 
-// Messages - Chat bubble icon
+// Messages - MessageCircle icon
 export const MessagesIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>💬</Text>
-    </View>
+    <MessageCircle size={size} color={color} strokeWidth={2} />
 );
 
-// Settings - Gear icon
+// Settings - Settings icon
 export const SettingsIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>⚙️</Text>
-    </View>
+    <Settings size={size} color={color} strokeWidth={2} />
 );
 
 // Back Arrow icon
 export const BackIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-        <Text style={[styles.iconText, { fontSize: size * 0.8, color }]}>←</Text>
-    </View>
+    <ChevronLeft size={size} color={color} strokeWidth={2} />
 );
 
-const styles = StyleSheet.create({
-    iconContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    iconText: {
-        textAlign: 'center',
-    },
-});
+// Menu / Hamburger icon
+export const MenuIcon: React.FC<IconProps> = ({ size = 24, color = '#fff' }) => (
+    <Menu size={size} color={color} strokeWidth={2} />
+);

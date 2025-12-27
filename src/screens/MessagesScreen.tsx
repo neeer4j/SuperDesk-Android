@@ -11,7 +11,7 @@ import {
     RefreshControl,
     ActivityIndicator,
 } from 'react-native';
-import { SettingsIcon } from '../components/Icons';
+
 import { messagesService, Message } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenContainer, Card } from '../components/ui'; // Button not strictly needed for list items but good to have
@@ -152,20 +152,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ navigation }) => {
 
     return (
         <ScreenContainer withScroll={false}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Image
-                    source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
-                    style={styles.logoImage}
-                    resizeMode="contain"
-                />
-                <TouchableOpacity
-                    style={styles.settingsButton}
-                    onPress={() => navigation.navigate('Settings')}
-                >
-                    <SettingsIcon size={24} color={colors.textSecondary} />
-                </TouchableOpacity>
-            </View>
+
 
             {isLoading ? (
                 <View style={styles.loadingContainer}>

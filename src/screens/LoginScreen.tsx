@@ -1,5 +1,5 @@
-// Login Screen - OTP Authentication matching Desktop design
-import React, { useState, useEffect, useRef } from 'react';
+// Simple, Clean Login Screen - Polished with curves and real icons
+import React, { useState, useEffect } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -8,98 +8,28 @@ import {
     Image,
     View,
     Text,
-    ScrollView,
     ActivityIndicator,
     StyleSheet,
-    Animated,
-    Easing,
+    TouchableOpacity,
+    TextInput,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { authService } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
-import { VStack, Input, Button, Heading } from '../components/ui';
-import { layout, typography } from '../theme/designSystem';
+import { layout } from '../theme/designSystem';
 
 interface LoginScreenProps {
     navigation: any;
     onLogin: () => void;
 }
 
-interface UserProfile {
-    username: string;
-    avatar_url: string | null;
-    email: string | null;
-    display_name: string | null;
-}
-
-type AuthStep = 'email' | 'otp' | 'welcome';
+type AuthStep = 'email' | 'otp';
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
     const { theme, colors } = useTheme();
     const [step, setStep] = useState<AuthStep>('email');
     const [email, setEmail] = useState('');
     const [otpCode, setOtpCode] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-    // Animations
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.95)).current;
-    const rotateAnim = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        checkExistingSession();
-    }, []);
-
-    useEffect(() => {
-        if (!isLoading) {
-            // Entrance animation
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 600,
-                    easing: Easing.out(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-                Animated.spring(scaleAnim, {
-                    toValue: 1,
-                    tension: 40,
-                    friction: 7,
-                    useNativeDriver: true,
-                }),
-            ]).start();
-
-            // Rotate decorative elements
-            Animated.loop(
-                Animated.timing(rotateAnim, {
-                    toValue: 1,
-                    duration: 25000,
-                    easing: Easing.linear,
-                    useNativeDriver: true,
-                })
-            ).start();
-        }
-    }, [isLoading]);
-
-    const checkExistingSession = async () => {
-        try {
-            const profile = await authService.getUserProfile();
-            if (profile) {
-                setUserProfile({
-                    username: profile.username,
-                    avatar_url: profile.avatar_url,
-                    email: profile.email,
-                    display_name: profile.display_name,
-                });
-                setStep('welcome');
-            }
-        } catch (error) {
-            // No existing session
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSendOTP = async () => {
         if (!email || !email.includes('@')) {
@@ -107,7 +37,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
             return;
         }
 
-        setIsSubmitting(true);
+        setIsLoading(true);
         try {
             await authService.sendOTP(email);
             setStep('otp');
@@ -115,7 +45,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to send verification code');
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
 
@@ -125,394 +55,241 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
             return;
         }
 
-        setIsSubmitting(true);
+        setIsLoading(true);
         try {
             await authService.verifyOTP(email, otpCode);
-            // Update auth state
             onLogin();
-            // Navigate directly to the app
             navigation.navigate('MainTabs');
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Invalid verification code');
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
-
-    const handleContinue = () => {
-        onLogin();
-    };
-
-    const handleSwitchAccount = async () => {
-        await authService.signOut();
-        setUserProfile(null);
-        setStep('email');
-        setEmail('');
-        setOtpCode('');
-    };
-
-    if (isLoading) {
-        return (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-        );
-    }
-
-    // Welcome Back Screen
-    if (step === 'welcome' && userProfile) {
-        return (
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                <StatusBar
-                    barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                    backgroundColor={colors.background}
-                />
-                <View style={styles.centerContainer}>
-                    <Heading size="3xl" color={colors.text} style={styles.textCenter}>
-                        Welcome Back!
-                    </Heading>
-                    <Text style={[styles.welcomeSubtext, { color: colors.subText }]}>
-                        You're currently signed in as
-                    </Text>
-
-                    <View
-                        style={[
-                            styles.profileCard,
-                            {
-                                backgroundColor: colors.card,
-                                borderColor: colors.cardBorder,
-                            },
-                        ]}
-                    >
-                        {/* Avatar */}
-                        {userProfile.avatar_url ? (
-                            <Image
-                                source={{ uri: userProfile.avatar_url }}
-                                style={styles.avatar}
-                            />
-                        ) : (
-                            <View
-                                style={[
-                                    styles.avatarPlaceholder,
-                                    { backgroundColor: colors.primary },
-                                ]}
-                            >
-                                <Text style={styles.avatarText}>
-                                    {userProfile.username.charAt(0).toUpperCase()}
-                                </Text>
-                            </View>
-                        )}
-                        <Heading size="xl" color={colors.text}>
-                            @{userProfile.username}
-                        </Heading>
-                    </View>
-
-                    <Button
-                        title="Continue to Dashboard"
-                        onPress={handleContinue}
-                        size="lg"
-                        style={styles.fullWidth}
-                    />
-
-                    <Button
-                        title="Sign in with different account"
-                        onPress={handleSwitchAccount}
-                        variant="ghost"
-                        style={styles.switchButton}
-                    />
-                </View>
-            </View>
-        );
-    }
 
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.flex}
+            style={[styles.container, { backgroundColor: colors.background }]}
         >
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                <StatusBar
-                    barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-                    backgroundColor={colors.background}
-                />
+            <StatusBar
+                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+                backgroundColor={colors.background}
+            />
 
-                {/* Decorative background circles */}
-                <Animated.View
-                    style={[
-                        styles.decorativeCircle1,
-                        {
-                            backgroundColor: colors.primary,
-                            transform: [{
-                                rotate: rotateAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ['0deg', '360deg'],
-                                })
-                            }],
-                        }
-                    ]}
-                />
-                <Animated.View
-                    style={[
-                        styles.decorativeCircle2,
-                        {
-                            backgroundColor: colors.primary,
-                            transform: [{
-                                rotate: rotateAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ['360deg', '0deg'],
-                                })
-                            }],
-                        }
-                    ]}
-                />
+            <View style={styles.content}>
+                {/* Logo at top */}
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../assets/supp.png')}
+                        style={styles.logoIcon}
+                        resizeMode="contain"
+                    />
+                    <Image
+                        source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
+                        style={styles.logoText}
+                        resizeMode="contain"
+                    />
+                </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <Animated.View
-                        style={[
-                            styles.formContainer,
-                            {
-                                opacity: fadeAnim,
-                                transform: [{ scale: scaleAnim }],
-                            }
-                        ]}
-                    >
-                        {/* Header with enhanced logo */}
-                        <VStack spacing="sm" align="center" style={styles.header}>
-                            <View style={styles.logoHeaderContainer}>
-                                <View style={[styles.logoHeaderGlow, { backgroundColor: colors.primary }]} />
-                                <Image
-                                    source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
-                                    style={styles.logoHeader}
-                                    resizeMode="contain"
-                                />
-                            </View>
-                            <Text
-                                style={[
-                                    styles.headerSubtext,
-                                    { color: colors.primary },
-                                ]}
-                            >
-                                REMOTE DESKTOP CONTROL
-                            </Text>
-                        </VStack>
+                {/* Heading */}
+                <Text style={[styles.heading, { color: colors.text }]}>
+                    {step === 'email' ? 'Welcome to SuperDesk' : 'Verify your email'}
+                </Text>
 
-                        {/* Enhanced Card */}
-                        <View
-                            style={[
-                                styles.card,
-                                {
-                                    backgroundColor: colors.card,
-                                    borderColor: colors.cardBorder,
-                                    shadowColor: theme === 'light' ? '#000' : colors.primary,
-                                },
-                            ]}
+                {/* Email Step */}
+                {step === 'email' && (
+                    <View style={styles.form}>
+                        <TextInput
+                            style={[styles.input, {
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                                color: colors.text,
+                                borderRadius: layout.borderRadius.lg,
+                            }]}
+                            placeholder="Enter your email"
+                            placeholderTextColor={colors.subText}
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoComplete="email"
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.button, {
+                                backgroundColor: colors.primary,
+                                borderRadius: layout.borderRadius.lg,
+                            }]}
+                            onPress={handleSendOTP}
+                            disabled={isLoading}
                         >
-                            {step === 'email' ? (
-                                <VStack spacing="md">
-                                    <VStack spacing="xs">
-                                        <Heading size="lg" color={colors.text} style={styles.textCenter}>
-                                            Sign In
-                                        </Heading>
-                                        <Text style={[styles.cardSubtext, { color: colors.subText }]}>
-                                            Enter your email to receive a verification code
-                                        </Text>
-                                    </VStack>
-
-                                    <Input
-                                        label="EMAIL"
-                                        placeholder="Enter your email"
-                                        value={email}
-                                        onChangeText={setEmail}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        size="md"
-                                    />
-
-                                    <Button
-                                        title="Send Code"
-                                        onPress={handleSendOTP}
-                                        size="md"
-                                        loading={isSubmitting}
-                                        disabled={isSubmitting}
-                                    />
-                                </VStack>
+                            {isLoading ? (
+                                <ActivityIndicator color="#FFFFFF" />
                             ) : (
-                                <VStack spacing="md">
-                                    <VStack spacing="xs">
-                                        <Heading size="lg" color={colors.text} style={styles.textCenter}>
-                                            Verify Code
-                                        </Heading>
-                                        <Text style={[styles.cardSubtext, { color: colors.subText }]}>
-                                            Enter the 6-digit code sent to {email}
-                                        </Text>
-                                    </VStack>
-
-                                    <Input
-                                        label="VERIFICATION CODE"
-                                        placeholder="000000"
-                                        value={otpCode}
-                                        onChangeText={setOtpCode}
-                                        keyboardType="number-pad"
-                                        maxLength={6}
-                                        size="md"
-                                        inputStyle={styles.otpInput}
-                                    />
-
-                                    <Button
-                                        title="Verify"
-                                        onPress={handleVerifyOTP}
-                                        size="md"
-                                        loading={isSubmitting}
-                                        disabled={isSubmitting}
-                                    />
-
-                                    <Button
-                                        title="Wrong email? Go back"
-                                        onPress={() => setStep('email')}
-                                        variant="ghost"
-                                        size="sm"
-                                    />
-                                </VStack>
+                                <Text style={styles.buttonText}>Continue</Text>
                             )}
-                        </View>
-                    </Animated.View>
-                </ScrollView>
+                        </TouchableOpacity>
+
+                        <Text style={[styles.hint, { color: colors.subText }]}>
+                            We'll send you a verification code
+                        </Text>
+                    </View>
+                )}
+
+                {/* OTP Step */}
+                {step === 'otp' && (
+                    <View style={styles.form}>
+                        <Text style={[styles.otpHint, { color: colors.subText }]}>
+                            Enter the 6-digit code sent to
+                        </Text>
+                        <Text style={[styles.emailDisplay, { color: colors.text }]}>
+                            {email}
+                        </Text>
+
+                        <TextInput
+                            style={[styles.otpInput, {
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                                color: colors.text,
+                                borderRadius: layout.borderRadius.lg,
+                            }]}
+                            placeholder="000000"
+                            placeholderTextColor={colors.subText}
+                            value={otpCode}
+                            onChangeText={setOtpCode}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.button, {
+                                backgroundColor: colors.primary,
+                                borderRadius: layout.borderRadius.lg,
+                            }]}
+                            onPress={handleVerifyOTP}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.buttonText}>Verify</Text>
+                            )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.backLink}
+                            onPress={() => setStep('email')}
+                        >
+                            <Text style={[styles.backLinkText, { color: colors.primary }]}>
+                                ← Wrong email? Go back
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: colors.subText }]}>
+                    SuperDesk Mobile v1.0
+                </Text>
             </View>
         </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
-    flex: {
-        flex: 1,
-    },
     container: {
         flex: 1,
-        overflow: 'hidden',
     },
-    loadingContainer: {
+    content: {
         flex: 1,
         justifyContent: 'center',
+        paddingHorizontal: 32,
+    },
+    logoContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
-    },
-    centerContainer: {
-        flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: layout.spacing.xl,
+        marginBottom: 48,
     },
-    scrollContent: {
-        flexGrow: 1,
-        justifyContent: 'center',
+    logoIcon: {
+        width: 48,
+        height: 48,
+        marginRight: 12,
     },
-    formContainer: {
-        paddingHorizontal: layout.spacing.xl,
-        paddingVertical: layout.spacing.xxl,
+    logoText: {
+        width: 160,
+        height: 44,
     },
-    header: {
-        marginBottom: layout.spacing.xxl,
+    heading: {
+        fontSize: 28,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 32,
     },
-    logoHeaderContainer: {
-        position: 'relative',
-    },
-    logoHeader: {
-        width: 190,
-        height: 52,
-    },
-    logoHeaderGlow: {
-        position: 'absolute',
-        width: 200,
-        height: 62,
-        borderRadius: 31,
-        opacity: 0.12,
-        top: -5,
-        left: -5,
-    },
-    headerSubtext: {
-        fontSize: typography.size.sm,
-        marginTop: layout.spacing.sm,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-    },
-    card: {
-        padding: layout.spacing.xl,
-        borderRadius: 20,
-        borderWidth: 1,
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-        elevation: 6,
-    },
-    profileCard: {
-        padding: layout.spacing.xxl,
-        borderRadius: layout.borderRadius.lg,
+    form: {
         width: '100%',
-        alignItems: 'center',
+    },
+    input: {
+        height: 56,
         borderWidth: 1,
-        marginBottom: layout.spacing.xxl,
-    },
-    avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 20,
-    },
-    avatarPlaceholder: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: layout.spacing.lg,
-    },
-    avatarText: {
-        fontSize: typography.size.xxxl,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-    textCenter: {
-        textAlign: 'center',
-    },
-    letterSpacing: {
-        letterSpacing: 1,
-    },
-    welcomeSubtext: {
-        marginBottom: layout.spacing.xxl,
-    },
-    cardSubtext: {
-        textAlign: 'center',
+        paddingHorizontal: 20,
+        fontSize: 16,
+        marginBottom: 16,
     },
     otpInput: {
+        height: 64,
+        borderWidth: 1,
+        paddingHorizontal: 16,
+        fontSize: 28,
+        fontWeight: '600',
         textAlign: 'center',
-        letterSpacing: 10,
-        fontSize: 24,
-        fontWeight: 'bold',
+        letterSpacing: 8,
+        marginBottom: 16,
+        marginTop: 24,
     },
-    fullWidth: {
-        width: '100%',
+    button: {
+        height: 56,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
-    switchButton: {
-        marginTop: layout.spacing.md,
+    buttonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
     },
-    // Decorative elements
-    decorativeCircle1: {
-        position: 'absolute',
-        width: 250,
-        height: 250,
-        borderRadius: 125,
-        top: -100,
-        right: -80,
-        opacity: 0.04,
-        zIndex: 0,
+    hint: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginTop: 8,
     },
-    decorativeCircle2: {
-        position: 'absolute',
-        width: 180,
-        height: 180,
-        borderRadius: 90,
-        bottom: -60,
-        left: -50,
-        opacity: 0.06,
-        zIndex: 0,
+    otpHint: {
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    emailDisplay: {
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginTop: 4,
+    },
+    backLink: {
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    backLinkText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    footer: {
+        paddingVertical: 24,
+        alignItems: 'center',
+    },
+    footerText: {
+        fontSize: 12,
     },
 });
 

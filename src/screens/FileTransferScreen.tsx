@@ -15,7 +15,7 @@ import {
     Image,
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
-import { SettingsIcon, FileTransferIcon } from '../components/Icons';
+
 import { fileTransferService, TransferProgress, FileToSend } from '../services/FileTransferService';
 import { sessionManager, SessionState } from '../services/SessionManager';
 import { useTheme } from '../context/ThemeContext';
@@ -323,31 +323,7 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
 
     return (
         <ScreenContainer>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <Image
-                        source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
-                        style={styles.logoImage}
-                        resizeMode="contain"
-                    />
-                    <View style={styles.connectionStatus}>
-                        <View style={[
-                            styles.connectionDot,
-                            { backgroundColor: connectionInfo.color }
-                        ]} />
-                        <Text style={[styles.connectionText, { color: colors.textSecondary }]}>
-                            {connectionInfo.text}
-                        </Text>
-                    </View>
-                </View>
-                <TouchableOpacity
-                    style={styles.settingsButton}
-                    onPress={() => navigation.navigate('Settings')}
-                >
-                    <SettingsIcon size={24} color={colors.textSecondary} />
-                </TouchableOpacity>
-            </View>
+
 
             {/* Session Info Bar - Compact */}
             {sessionState.isActive && (
@@ -517,41 +493,7 @@ const FileTransferScreen: React.FC<FileTransferScreenProps> = ({ navigation }) =
 };
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: layout.spacing.md,
-        marginBottom: layout.spacing.sm,
-    },
-    headerLeft: {
-        flex: 1,
-    },
-    logoImage: {
-        width: 200,
-        height: 54,
-        marginBottom: 8,
-    },
-    connectionStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginRight: 16,
-        maxWidth: 150,
-    },
-    connectionDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 6,
-    },
-    connectionText: {
-        fontSize: 11,
-        fontFamily: typography.fontFamily.medium,
-        flexShrink: 1,
-    },
-    settingsButton: {
-        padding: 8,
-    },
+
     sessionBar: {
         flexDirection: 'row',
         alignItems: 'center',

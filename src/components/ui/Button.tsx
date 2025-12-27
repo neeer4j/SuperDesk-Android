@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: layout.borderRadius.md,
+        borderRadius: layout.borderRadius.lg, // Updated to lg for more rounded appearance
     },
     text: {
         fontFamily: typography.fontFamily.medium,

@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     },
     input: {
         borderWidth: 1,
-        borderRadius: layout.borderRadius.md,
+        borderRadius: layout.borderRadius.lg, // Updated to lg for more rounded appearance
         paddingHorizontal: layout.spacing.md,
         fontFamily: typography.fontFamily.regular,
     },

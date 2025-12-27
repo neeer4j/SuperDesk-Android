@@ -61,10 +61,11 @@ export const layout = {
         xxl: 48,
     },
     borderRadius: {
-        sm: 6,
-        md: 12,
-        lg: 16,
-        xl: 24,
+        sm: 8,    // Increased from 6
+        md: 16,   // Increased from 12
+        lg: 20,   // Increased from 16
+        xl: 28,   // Increased from 24
+        xxl: 32,  // New value for extra rounded
         full: 9999,
     },
 };

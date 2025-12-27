@@ -23,7 +23,7 @@ export const Card: React.FC<CardProps> = ({
     const getCardStyles = () => {
         const baseStyle = {
             padding: layout.spacing[padding],
-            borderRadius: layout.borderRadius.md,
+            borderRadius: layout.borderRadius.lg, // Updated to lg for more rounded appearance
         };
 
         switch (variant) {

@@ -11,7 +11,6 @@ import {
     ScrollView,
     Image,
 } from 'react-native';
-import { SettingsIcon } from '../components/Icons';
 import { sessionManager, SessionState } from '../services/SessionManager';
 import { webRTCService } from '../services/WebRTCService';
 import { useTheme } from '../context/ThemeContext';
@@ -209,22 +208,6 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
 
     return (
         <ScreenContainer withScroll>
-            {/* Header */}
-            <View style={styles.header}>
-                <Image
-                    source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
-                    style={styles.logoImage}
-                    resizeMode="contain"
-                />
-                <Button
-                    title=""
-                    variant="ghost"
-                    icon={<SettingsIcon size={24} color={colors.subText} />}
-                    onPress={() => navigation.navigate('Settings')}
-                    style={styles.settingsButton}
-                />
-            </View>
-
             {!isHosting ? (
                 <>
                     {/* Host Session Card */}
@@ -342,22 +325,6 @@ const HostSessionScreen: React.FC<HostSessionScreenProps> = ({ navigation }) => 
 };
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: layout.spacing.md,
-        marginBottom: layout.spacing.md,
-    },
-    logoImage: {
-        width: 200,
-        height: 54,
-    },
-    settingsButton: {
-        padding: 0,
-        height: 40,
-        width: 40,
-    },
     mainCard: {
         marginBottom: layout.spacing.lg,
     },

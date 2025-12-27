@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     accountCard: {
-        borderRadius: 12,
+        borderRadius: 20,
         padding: 16,
         flexDirection: 'row',
         alignItems: 'center',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
         fontSize: 24,
     },
     section: {
-        borderRadius: 12,
+        borderRadius: 20,
         overflow: 'hidden',
         borderWidth: 1,
     },
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     settingIcon: {
         width: 40,
         height: 40,
-        borderRadius: 10,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     logoutButton: {
-        borderRadius: 12,
+        borderRadius: 20,
         padding: 16,
         alignItems: 'center',
         marginTop: 24,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modalContent: {
-        borderRadius: 16,
+        borderRadius: 24,
         padding: 24,
         width: '100%',
         maxWidth: 400,
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     modalInput: {
-        borderRadius: 8,
+        borderRadius: 12,
         padding: 14,
         fontSize: 16,
     },

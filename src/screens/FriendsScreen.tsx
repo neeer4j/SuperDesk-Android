@@ -13,7 +13,7 @@ import {
     ActivityIndicator,
     Image,
 } from 'react-native';
-import { SettingsIcon, BackIcon } from '../components/Icons'; // Assuming generic icons, or use specifics if available
+import { BackIcon } from '../components/Icons'; // Assuming generic icons, or use specifics if available
 import { friendsService, Friend } from '../services/supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenContainer, Card, Button } from '../components/ui';
@@ -193,17 +193,7 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ navigation }) => {
 
     return (
         <ScreenContainer>
-            {/* Header */}
-            <View style={styles.header}>
-                <Image
-                    source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
-                    style={styles.logoImage}
-                    resizeMode="contain"
-                />
-                <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-                    <SettingsIcon size={24} color={colors.subText} />
-                </TouchableOpacity>
-            </View>
+
 
             {/* Add Friend Input */}
             <View style={styles.addFriendContainer}>
