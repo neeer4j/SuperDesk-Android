@@ -158,11 +158,27 @@ class WebRTCService {
             }
         };
 
-        // Handle remote stream (for viewer)
+        // Handle remote stream (for viewer) - includes video and audio tracks
         (this.peerConnection as any).ontrack = (event: RTCTrackEvent) => {
-            console.log('📱 Received remote track');
+            const track = event.track;
+            console.log('📱 Received remote track:', track.kind);
+            console.log('   - Track ID:', track.id);
+            console.log('   - Track enabled:', (track as any).enabled);
+            console.log('   - Track readyState:', track.readyState);
+            console.log('   - Streams count:', event.streams?.length || 0);
+
+            if (track.kind === 'audio') {
+                console.log('🔊 Audio track received from remote peer!');
+                // For React Native WebRTC, audio playback happens automatically
+                // when the track is added to a MediaStream that's attached to RTCView
+                // However, for audio-only tracks, we may need InCallManager
+            }
+
             if (event.streams && event.streams[0]) {
                 this.remoteStream = event.streams[0];
+                console.log('📱 Remote stream updated:');
+                console.log('   - Video tracks:', this.remoteStream.getVideoTracks().length);
+                console.log('   - Audio tracks:', this.remoteStream.getAudioTracks().length);
                 this.onRemoteStreamCallback?.(this.remoteStream);
             }
         };
@@ -648,7 +664,37 @@ class WebRTCService {
                 this.peerConnection.addTrack(audioTrack, this.audioStream);
                 this.audioEnabled = true;
                 console.log('✅ Audio track added successfully');
+
+                // IMPORTANT: Trigger renegotiation to send audio to remote peer
+                // This is required when adding tracks mid-session
+                await this.triggerRenegotiation();
             }
+        }
+    }
+
+    // Trigger WebRTC renegotiation after adding a track mid-session
+    private async triggerRenegotiation(): Promise<void> {
+        if (!this.peerConnection || !this.sessionId) {
+            console.warn('🔄 Cannot renegotiate - no peer connection or session');
+            return;
+        }
+
+        console.log('🔄 Triggering renegotiation for new audio track...');
+
+        try {
+            const offer = await this.peerConnection.createOffer({
+                offerToReceiveVideo: false,
+                offerToReceiveAudio: true, // We want to receive audio from PC too
+            } as any);
+            console.log('🔄 Renegotiation offer created');
+
+            await this.peerConnection.setLocalDescription(offer);
+            console.log('🔄 Local description set');
+
+            socketService.sendOffer(this.sessionId, offer);
+            console.log('🔄 ✅ Renegotiation offer sent - audio should now be transmitted');
+        } catch (error) {
+            console.error('🔄 ❌ Renegotiation failed:', error);
         }
     }
 

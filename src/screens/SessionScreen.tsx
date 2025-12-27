@@ -42,6 +42,7 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
     const [error, setError] = useState<string | null>(null);
     const [connectionState, setConnectionState] = useState<string>('new');
     const [accessibilityEnabled, setAccessibilityEnabled] = useState(false);
+    const [micEnabled, setMicEnabled] = useState(false); // Mic toggle state (off by default)
 
     const cleanupRef = useRef(false);
     const dragStateRef = useRef<{ startX: number; startY: number; startTime: number } | null>(null);
@@ -129,6 +130,8 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
             cleanupRef.current = true;
             sessionManager.off('sessionEnded', handleSessionEnded);
             stopScreenShareOnly();
+            // IMPORTANT: Stop audio stream on cleanup to prevent lingering mic usage
+            webRTCService.stopAudioStream();
         };
     }, []);
 
@@ -164,11 +167,10 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                     if (event.type === 'mouse' || event.type === 'touch') {
                         const data = event.data || {};
                         const action = event.action;
+
                         const accessibilityOk = await remoteControlService.isServiceEnabled();
                         if (!accessibilityOk) return;
 
-                        // Hand over to the same logic used by socket
-                        // but we need to map the fields slightly if they differ
                         if (action === 'down') {
                             dragStateRef.current = { startX: data.x, startY: data.y, startTime: Date.now() };
                         } else if (action === 'up' && dragStateRef.current) {
@@ -259,8 +261,28 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
     };
 
     const endSession = () => {
+        // Stop audio stream before closing connection
+        webRTCService.stopAudioStream();
+        setMicEnabled(false);
         webRTCService.close();
         sessionManager.endSession();
+    };
+
+    // Toggle microphone for voice chat
+    const toggleMic = async () => {
+        try {
+            if (!micEnabled) {
+                // Enable mic
+                await webRTCService.addAudioTrack();
+                setMicEnabled(true);
+            } else {
+                // Disable and stop mic immediately
+                webRTCService.stopAudioStream();
+                setMicEnabled(false);
+            }
+        } catch (err) {
+            console.error('Mic toggle error:', err);
+        }
     };
 
     const handleGoBack = () => {
@@ -438,6 +460,12 @@ const SessionScreen: React.FC<SessionScreenProps> = ({ route, navigation }) => {
                     variant="secondary"
                     onPress={handleGoBack}
                     style={{ flex: 1, marginRight: 8 }}
+                />
+                <Button
+                    title={micEnabled ? '🎤 Mic On' : '🔇 Mic Off'}
+                    variant={micEnabled ? 'primary' : 'secondary'}
+                    onPress={toggleMic}
+                    style={{ minWidth: 100 }}
                 />
                 <Button
                     title="End Session"

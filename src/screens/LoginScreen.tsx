@@ -308,9 +308,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
                             ]}
                         >
                             {step === 'email' ? (
-                                <VStack spacing="xl">
-                                    <VStack spacing="sm">
-                                        <Heading size="xl" color={colors.text} style={styles.textCenter}>
+                                <VStack spacing="md">
+                                    <VStack spacing="xs">
+                                        <Heading size="lg" color={colors.text} style={styles.textCenter}>
                                             Sign In
                                         </Heading>
                                         <Text style={[styles.cardSubtext, { color: colors.subText }]}>
@@ -325,21 +325,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
                                         onChangeText={setEmail}
                                         keyboardType="email-address"
                                         autoCapitalize="none"
-                                        size="xl"
+                                        size="md"
                                     />
 
                                     <Button
                                         title="Send Code"
                                         onPress={handleSendOTP}
-                                        size="lg"
+                                        size="md"
                                         loading={isSubmitting}
                                         disabled={isSubmitting}
                                     />
                                 </VStack>
                             ) : (
-                                <VStack spacing="xl">
-                                    <VStack spacing="sm">
-                                        <Heading size="xl" color={colors.text} style={styles.textCenter}>
+                                <VStack spacing="md">
+                                    <VStack spacing="xs">
+                                        <Heading size="lg" color={colors.text} style={styles.textCenter}>
                                             Verify Code
                                         </Heading>
                                         <Text style={[styles.cardSubtext, { color: colors.subText }]}>
@@ -354,14 +354,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
                                         onChangeText={setOtpCode}
                                         keyboardType="number-pad"
                                         maxLength={6}
-                                        size="xl"
+                                        size="md"
                                         inputStyle={styles.otpInput}
                                     />
 
                                     <Button
                                         title="Verify"
                                         onPress={handleVerifyOTP}
-                                        size="lg"
+                                        size="md"
                                         loading={isSubmitting}
                                         disabled={isSubmitting}
                                     />
@@ -370,6 +370,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLogin }) => {
                                         title="Wrong email? Go back"
                                         onPress={() => setStep('email')}
                                         variant="ghost"
+                                        size="sm"
                                     />
                                 </VStack>
                             )}

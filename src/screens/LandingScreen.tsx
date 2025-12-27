@@ -290,22 +290,23 @@ const LandingScreen = () => {
                             },
                         ]}
                     >
-                        {/* Logo with glow effect */}
-                        <View style={styles.logoContainer}>
-                            <View style={[styles.logoGlow, { backgroundColor: colors.primary }]} />
+                        {/* Logo and App Name Row */}
+                        <View style={styles.logoRow}>
+                            <View style={styles.logoContainerSmall}>
+                                <View style={[styles.logoGlowSmall, { backgroundColor: colors.primary }]} />
+                                <Image
+                                    source={require('../assets/supp.png')}
+                                    style={styles.logoSmall}
+                                    resizeMode="contain"
+                                />
+                            </View>
+
                             <Image
-                                source={require('../assets/supp.png')}
-                                style={styles.logoLarge}
+                                source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
+                                style={styles.logoTextSmall}
                                 resizeMode="contain"
                             />
                         </View>
-
-                        {/* App Name/Logo */}
-                        <Image
-                            source={theme === 'dark' ? require('../assets/superdeskw.png') : require('../assets/superdesk.png')}
-                            style={styles.logoText}
-                            resizeMode="contain"
-                        />
 
                         {/* Tagline */}
                         <Text style={[styles.taglineMain, { color: colors.subText }]}>
@@ -475,27 +476,32 @@ const styles = StyleSheet.create({
         opacity: 0.5,
     },
     // ===== NOT LOGGED IN STYLES =====
-    logoContainer: {
-        position: 'relative',
+    logoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: layout.spacing.xl,
     },
-    logoLarge: {
-        width: 130,
-        height: 130,
+    logoContainerSmall: {
+        position: 'relative',
+        marginRight: layout.spacing.md,
     },
-    logoGlow: {
+    logoSmall: {
+        width: 60,
+        height: 60,
+    },
+    logoGlowSmall: {
         position: 'absolute',
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        opacity: 0.15,
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        opacity: 0.2,
         top: -5,
         left: -5,
     },
-    logoText: {
-        width: 220,
-        height: 60,
-        marginBottom: layout.spacing.md,
+    logoTextSmall: {
+        width: 180,
+        height: 50,
     },
     taglineMain: {
         fontSize: typography.size.lg,
