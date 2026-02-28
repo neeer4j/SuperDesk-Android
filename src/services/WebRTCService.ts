@@ -99,6 +99,10 @@ class WebRTCService {
     private audioStream: MediaStream | null = null;
     private audioEnabled: boolean = true;
     private isAudioShared: boolean = false;
+    
+    // Connection quality monitoring
+    private connectionQuality: { rtt?: number; packetsLost?: number; timestamp: number } = { timestamp: 0 };
+    private qualityCheckInterval: NodeJS.Timeout | null = null;
 
     async initialize(role: ConnectionRole, sessionId?: string): Promise<void> {
         // Prevent double-initialization for same session
@@ -208,6 +212,9 @@ class WebRTCService {
 
         // Set up signaling handlers
         this.setupSignalingHandlers();
+        
+        // Start connection quality monitoring
+        this.startQualityMonitoring();
     }
 
     private setupDataChannel() {
@@ -824,6 +831,12 @@ class WebRTCService {
     // Cleanup
     close() {
         Logger.debug('📱 Closing WebRTC connection');
+        
+        // Stop quality monitoring
+        if (this.qualityCheckInterval) {
+            clearInterval(this.qualityCheckInterval);
+            this.qualityCheckInterval = null;
+        }
 
         this.dataChannel?.close();
         this.fileDataChannel?.close();
@@ -841,6 +854,41 @@ class WebRTCService {
         this.sessionId = null;
         this.isRemoteDescriptionSet = false;
         this.pendingIceCandidates = [];
+    }
+    
+    // Monitor connection quality (RTT, packet loss)
+    private startQualityMonitoring() {
+        // Check connection stats every 5 seconds
+        this.qualityCheckInterval = setInterval(async () => {
+            if (!this.peerConnection) return;
+            
+            try {
+                const stats = await this.peerConnection.getStats(null);
+                stats.forEach((report: any) => {
+                    if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                        if (report.currentRoundTripTime !== undefined) {
+                            this.connectionQuality.rtt = Math.round(report.currentRoundTripTime * 1000);
+                        }
+                    }
+                    if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                        this.connectionQuality.packetsLost = report.packetsLost || 0;
+                    }
+                });
+                this.connectionQuality.timestamp = Date.now();
+                
+                // Log quality periodically
+                if (this.connectionQuality.rtt !== undefined) {
+                    Logger.debug(`📶 Connection quality: RTT=${this.connectionQuality.rtt}ms, Lost=${this.connectionQuality.packetsLost || 0} packets`);
+                }
+            } catch (error) {
+                // Stats not available yet or connection closed
+            }
+        }, 5000);
+    }
+    
+    // Get current connection quality metrics
+    getConnectionQuality() {
+        return { ...this.connectionQuality };
     }
 }
 

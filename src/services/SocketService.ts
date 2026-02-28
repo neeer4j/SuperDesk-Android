@@ -138,6 +138,13 @@ class SocketService {
             if (serverUrl) {
                 this.serverUrl = serverUrl;
             }
+            
+            // If already connected, just resolve
+            if (this.socket?.connected) {
+                Logger.debug('📱 Already connected to server');
+                resolve();
+                return;
+            }
 
             Logger.info('📱 Connecting to:', this.serverUrl);
 
@@ -162,9 +169,29 @@ class SocketService {
                 reject(error);
             });
 
-            this.socket.on('disconnect', () => {
-                Logger.debug('📱 Disconnected from signaling server');
+            this.socket.on('disconnect', (reason) => {
+                Logger.warn('📱 Disconnected from signaling server. Reason:', reason);
                 this.onDisconnectedCallback?.();
+                
+                // Auto-reconnect if we have an active session and it wasn't a manual disconnect
+                if (this.currentSessionId && reason !== 'io client disconnect') {
+                    Logger.debug('📱 Attempting auto-reconnect for active session...');
+                    setTimeout(() => {
+                        if (!this.socket?.connected && this.currentSessionId) {
+                            Logger.debug('📱 Reconnecting to preserve session:', this.currentSessionId);
+                            this.socket?.connect();
+                        }
+                    }, 2000);
+                }
+            });
+            
+            this.socket.on('reconnect', (attemptNumber) => {
+                Logger.debug('📱 Reconnected after', attemptNumber, 'attempts');
+                // Rejoin session if we had one
+                if (this.currentSessionId) {
+                    Logger.debug('📱 Rejoining session after reconnect:', this.currentSessionId);
+                    this.joinSession(this.currentSessionId);
+                }
             });
 
             this.setupEventListeners();
