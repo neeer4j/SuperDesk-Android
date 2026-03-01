@@ -16,8 +16,8 @@ interface RTCIceCandidateInit {
     usernameFragment?: string | null;
 }
 
-// Default to the SuperDesk Azure server
-const DEFAULT_SERVER_URL = 'https://supderdesk-fgasbfdze6bwbbav.centralindia-01.azurewebsites.net';
+// Default to the SuperDesk Render server
+const DEFAULT_SERVER_URL = 'https://superdesk-7m7f.onrender.com';
 const SERVER_URL_KEY = 'superdesk_server_url';
 
 // Session types

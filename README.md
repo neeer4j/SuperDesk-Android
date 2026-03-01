@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
 
 <p>
-  <img src="https://skillicons.dev/icons?i=react,ts,kotlin,nodejs,supabase,azure" alt="Tech stack" />
+  <img src="https://skillicons.dev/icons?i=react,ts,kotlin,nodejs,supabase,cloudflare" alt="Tech stack" />
 </p>
 
 **Remote control • Biometric login • Virtual joystick • P2P file transfer • Voice chat**
@@ -117,7 +117,7 @@ flowchart TB
     App <-->|"Auth API"| Auth
 
     style App fill:#3DDC84,stroke:#fff,color:#fff,stroke-width:2px
-    style Server fill:#0078D4,stroke:#fff,color:#fff,stroke-width:2px
+    style Server fill:#8B5CF6,stroke:#fff,color:#fff,stroke-width:2px
     style Auth fill:#3ECF8E,stroke:#fff,color:#fff,stroke-width:2px
     style Agent fill:#6B5B95,stroke:#fff,color:#fff,stroke-width:2px
 ```
@@ -231,7 +231,7 @@ npm run android
 Modify in `src/services/SocketService.ts`:
 
 ```typescript
-const SOCKET_URL = 'https://your-server-url.azurewebsites.net';
+const SOCKET_URL = 'https://superdesk-7m7f.onrender.com';
 ```
 
 ### WebRTC Configuration
