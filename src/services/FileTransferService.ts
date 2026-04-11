@@ -35,6 +35,7 @@ export type FileTransferMessageType =
 
 export interface FileTransferMessage {
     type: FileTransferMessageType;
+    id?: string;
     name?: string;
     size?: number;
     mimeType?: string;
@@ -78,6 +79,7 @@ class FileTransferService {
     private bytesReceived = 0;
     private expectedFileSize = 0;
     private expectedFileName = '';
+    private expectedTransferId = '';
     private receivingInProgress = false;
 
     // For sending (waiting for accept)
@@ -157,7 +159,7 @@ class FileTransferService {
     // Note: Focus is on SENDING to Electron, but we maintain receiving capability
 
     private async handleFileOffer(message: FileTransferMessage) {
-        const { name, size, mimeType } = message;
+        const { id: messageId, name, size, mimeType } = message;
         if (!name || !size) return;
 
         Logger.debug(`📁 Receiving file offer: ${name} (${this.formatSize(size)})`);
@@ -165,7 +167,7 @@ class FileTransferService {
         // For now, AUTO ACCEPT to simplify (matches current Android logic)
         // In future we can add UI dialog to accept/reject
 
-        const id = name; // Use name as ID for simplicity in this flow via Electron protocol
+        const id = messageId || name;
 
         // Track progress
         const progress: TransferProgress = {
@@ -185,6 +187,7 @@ class FileTransferService {
         this.bytesReceived = 0;
         this.expectedFileSize = size;
         this.expectedFileName = name;
+        this.expectedTransferId = id;
         this.receivingInProgress = true;
 
         // Send ACCEPT
@@ -198,12 +201,14 @@ class FileTransferService {
         this.receivedChunks.push(chunk);
         this.bytesReceived += chunk.byteLength;
 
-        const id = this.expectedFileName;
+        const id = this.expectedTransferId || this.expectedFileName;
         const transfer = this.activeTransfers.get(id);
 
         if (transfer) {
             transfer.transferred = this.bytesReceived;
-            transfer.progress = Math.min(100, Math.round((this.bytesReceived / this.expectedFileSize) * 100));
+            transfer.progress = this.expectedFileSize > 0
+                ? Math.min(100, Math.round((this.bytesReceived / this.expectedFileSize) * 100))
+                : 0;
             this.onProgressCallback?.(transfer);
         }
     }
@@ -212,7 +217,7 @@ class FileTransferService {
         if (!this.receivingInProgress) return;
 
         Logger.debug('📁 File transfer complete (EOF)');
-        const id = this.expectedFileName;
+        const id = this.expectedTransferId || this.expectedFileName;
         const transfer = this.activeTransfers.get(id);
 
         try {
@@ -259,6 +264,7 @@ class FileTransferService {
             this.receivingInProgress = false;
             this.receivedChunks = [];
             this.bytesReceived = 0;
+            this.expectedTransferId = '';
         }
     }
 
@@ -297,7 +303,7 @@ class FileTransferService {
             throw new Error('Data channel not open');
         }
 
-        const transferId = file.name;
+        const transferId = `${file.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         this.pendingSendFile = file;
         this.pendingSendId = transferId;
 
@@ -318,6 +324,7 @@ class FileTransferService {
         try {
             this.sendMessage({
                 type: 'file-offer',
+                id: transferId,
                 name: file.name,
                 size: file.size,
                 mimeType: file.type || 'application/octet-stream'
@@ -440,8 +447,19 @@ class FileTransferService {
 
     private handleFileCancel() {
         Logger.debug('📁 Transfer cancelled by peer');
+        const transferId = this.expectedTransferId || this.expectedFileName;
+        const transfer = this.activeTransfers.get(transferId);
+        if (transfer && transfer.status === 'transferring') {
+            transfer.status = 'cancelled';
+            transfer.error = 'Cancelled by peer';
+            this.onProgressCallback?.(transfer);
+        }
         this.receivingInProgress = false;
         this.receivedChunks = [];
+        this.bytesReceived = 0;
+        this.expectedFileSize = 0;
+        this.expectedFileName = '';
+        this.expectedTransferId = '';
         // Update UI if needed
     }
 
@@ -496,7 +514,13 @@ class FileTransferService {
     cleanup() {
         this.activeTransfers.clear();
         this.receivedChunks = [];
+        this.bytesReceived = 0;
+        this.expectedFileSize = 0;
+        this.expectedFileName = '';
+        this.expectedTransferId = '';
+        this.receivingInProgress = false;
         this.pendingSendFile = null;
+        this.pendingSendId = null;
         this.dataChannel = null;
     }
 }

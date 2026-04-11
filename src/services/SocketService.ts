@@ -254,6 +254,19 @@ class SocketService {
             this.onHostStoppedSharingCallback?.();
         });
 
+        // Alias used by some web/desktop flows
+        this.socket.on('screen-share-stopped', () => {
+            Logger.debug('📱 Screen share stopped (alias event)');
+            this.onHostStoppedSharingCallback?.();
+        });
+
+        this.socket.on('session-timeout', () => {
+            Logger.debug('📱 Session timed out');
+            this.currentSessionId = null;
+            this.onSessionEndedCallback?.();
+            this.onSessionErrorCallback?.('Session timed out due to inactivity');
+        });
+
         // Session lifecycle events
         this.socket.on('session-ended', () => {
             Logger.debug('📱 Session ended');
