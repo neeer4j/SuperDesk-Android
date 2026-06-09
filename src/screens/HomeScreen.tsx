@@ -37,7 +37,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             setIsConnecting(false);
         } catch (error) {
             setIsConnecting(false);
-            Alert.alert('Connection Error', 'Failed to connect to server. Please check your internet connection.');
+            setIsConnected(false);
+            Alert.alert(
+                'Connection Error',
+                'Failed to connect to server. The server may be starting up — this can take up to 30 seconds on first connect.',
+                [
+                    { text: 'Retry', onPress: () => connectToServer() },
+                    { text: 'Cancel', style: 'cancel' },
+                ]
+            );
         }
     };
 

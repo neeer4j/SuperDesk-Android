@@ -146,27 +146,61 @@ class SocketService {
                 return;
             }
 
+            // Clean up existing socket before creating a new one
+            if (this.socket) {
+                Logger.debug('📱 Cleaning up old socket before reconnecting');
+                this.socket.removeAllListeners();
+                this.socket.disconnect();
+                this.socket = null;
+            }
+
             Logger.info('📱 Connecting to:', this.serverUrl);
+
+            let settled = false;
 
             this.socket = io(this.serverUrl, {
                 transports: ['websocket', 'polling'],
                 reconnection: true,
-                reconnectionAttempts: 5,
+                reconnectionAttempts: 10,
                 reconnectionDelay: 1000,
-                timeout: 20000,
+                reconnectionDelayMax: 5000,
+                timeout: 30000,
                 upgrade: true,
                 path: '/socket.io/',
             });
 
+            // Safety timeout - reject if we can't connect after 35 seconds
+            const connectionTimeout = setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    console.error('❌ Connection timed out after 35 seconds');
+                    reject(new Error('Connection timed out. Server may be unavailable.'));
+                }
+            }, 35000);
+
             this.socket.on('connect', () => {
-                Logger.debug('📱 Connected to signaling server');
-                this.onConnectedCallback?.();
-                resolve();
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(connectionTimeout);
+                    Logger.debug('📱 Connected to signaling server');
+                    this.onConnectedCallback?.();
+                    resolve();
+                }
             });
 
+            // Don't reject on first connect_error - let socket.io retry
             this.socket.on('connect_error', (error) => {
-                console.error('❌ Connection error:', error);
-                reject(error);
+                Logger.warn('⚠️ Connection attempt failed (will retry):', error.message || error);
+            });
+
+            // Only reject when ALL reconnection attempts are exhausted
+            this.socket.io.on('reconnect_failed', () => {
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(connectionTimeout);
+                    console.error('❌ All reconnection attempts failed');
+                    reject(new Error('Failed to connect after multiple attempts. Please check your connection.'));
+                }
             });
 
             this.socket.on('disconnect', (reason) => {

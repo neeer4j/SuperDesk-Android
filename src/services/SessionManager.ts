@@ -213,7 +213,7 @@ class SessionManager {
                 console.error('📱 [SessionManager] Session creation timed out');
                 this.emit('error', 'Connection timed out. Server may be starting up, please try again.');
                 reject(new Error('Connection timed out'));
-            }, 15000);
+            }, 45000);
 
             // Listen for session created event
             const onCreated = () => {
